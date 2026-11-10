@@ -128,11 +128,41 @@ window.WorkoutModels = (function () {
   }
 
   /**
+   * 분·초를 읽기 좋은 문자열로 변환 (예: "30분", "1분 30초", "45초")
+   */
+  function formatDuration(minutes, seconds) {
+    const totalSec = Math.max(
+      0,
+      Math.round((Number(minutes) || 0) * 60 + (Number(seconds) || 0))
+    );
+    if (totalSec === 0) return '0초';
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+
+    const parts = [];
+    if (hrs > 0) parts.push(`${hrs}시간`);
+    if (mins > 0) parts.push(`${mins}분`);
+    if (secs > 0) parts.push(`${secs}초`);
+    return parts.join(' ');
+  }
+
+  /**
    * 운동 기록 객체 생성 헬퍼
    */
   function createWorkoutLog(params) {
     const now = new Date().toISOString();
     const recordType = params.recordType || RECORD_TYPES.TIME;
+
+    let normMinutes = null;
+    let normSeconds = null;
+    if (recordType === RECORD_TYPES.TIME) {
+      const rawMin = Math.max(0, Number(params.minutes) || 0);
+      const rawSec = Math.max(0, Number(params.seconds) || 0);
+      const totalSec = Math.max(1, Math.round(rawMin * 60 + rawSec));
+      normMinutes = Math.floor(totalSec / 60);
+      normSeconds = totalSec % 60;
+    }
 
     return {
       id: params.id || `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -141,8 +171,9 @@ window.WorkoutModels = (function () {
       exerciseName: params.exerciseName,
       exerciseIcon: params.exerciseIcon || '🔥',
       recordType,
-      // 시간 중심 기록 필드
-      minutes: recordType === RECORD_TYPES.TIME ? Math.max(1, Number(params.minutes) || 0) : null,
+      // 시간 중심 기록 필드 (분 + 초)
+      minutes: normMinutes,
+      seconds: normSeconds,
       distanceKm:
         recordType === RECORD_TYPES.TIME && params.distanceKm
           ? Math.max(0, Number(params.distanceKm))
@@ -166,7 +197,7 @@ window.WorkoutModels = (function () {
    */
   function formatLogSummary(log) {
     if (log.recordType === RECORD_TYPES.TIME) {
-      let text = `${log.minutes}분`;
+      let text = formatDuration(log.minutes, log.seconds);
       if (log.distanceKm && log.distanceKm > 0) {
         text += ` · ${log.distanceKm}km`;
       }
@@ -186,6 +217,7 @@ window.WorkoutModels = (function () {
     DEFAULT_EXERCISES,
     formatDateKey,
     formatKoreanDate,
+    formatDuration,
     createWorkoutLog,
     formatLogSummary,
   };

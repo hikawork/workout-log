@@ -19,6 +19,7 @@
     editingLogId: null,
     form: {
       minutes: 30,
+      seconds: 0,
       distanceKm: '',
       reps: 15,
       sets: 3,
@@ -155,7 +156,9 @@
     state.editingLogId = log.id;
     state.selectedDate = log.date;
     state.selectedExerciseId = log.exerciseId;
-    state.form.minutes = log.minutes || 30;
+    state.form.minutes =
+      log.minutes !== undefined && log.minutes !== null ? Number(log.minutes) : 30;
+    state.form.seconds = Number(log.seconds) || 0;
     state.form.distanceKm = log.distanceKm ?? '';
     state.form.reps = log.reps || 15;
     state.form.sets = log.sets || 3;
@@ -176,7 +179,8 @@
     }
     state.selectedExerciseId = ex.id;
     if (ex.recordType === Models.RECORD_TYPES.TIME) {
-      state.form.minutes = ex.defaultMinutes || 30;
+      state.form.minutes = ex.defaultMinutes !== undefined ? ex.defaultMinutes : 30;
+      state.form.seconds = ex.defaultSeconds || 0;
       state.form.distanceKm = '';
     } else {
       state.form.reps = ex.defaultReps || 15;
@@ -416,28 +420,52 @@
     let fieldsHtml = '';
 
     if (isTimeMode) {
+      const durationPreviewText = Models.formatDuration(state.form.minutes, state.form.seconds);
       fieldsHtml = `
-        <div class="field-group">
-          <div class="field-label">
-            <span>운동 시간 (분)</span>
-            <span>빠른 프리셋</span>
-          </div>
-          <div class="stepper-row">
-            <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="-5">-5</button>
-            <div class="number-input-wrap">
-              <input type="number" id="input-minutes" class="number-input" min="1" max="600" value="${state.form.minutes}" />
-              <span class="unit-suffix">MIN</span>
+        <div class="dual-grid">
+          <div class="field-group">
+            <div class="field-label"><span>운동 시간 (분)</span></div>
+            <div class="stepper-row">
+              <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="-1">-</button>
+              <div class="number-input-wrap">
+                <input type="number" id="input-minutes" class="number-input" min="0" max="600" value="${state.form.minutes}" />
+                <span class="unit-suffix">분</span>
+              </div>
+              <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="1">+</button>
             </div>
-            <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="5">+5</button>
+            <div class="preset-chips">
+              ${[0, 1, 5, 15, 30, 60]
+                .map(
+                  (m) =>
+                    `<button type="button" class="preset-btn" data-preset-field="minutes" data-preset-val="${m}">${m}분</button>`
+                )
+                .join('')}
+            </div>
           </div>
-          <div class="preset-chips">
-            ${[10, 15, 20, 30, 45, 60, 90]
-              .map(
-                (m) =>
-                  `<button type="button" class="preset-btn" data-preset-field="minutes" data-preset-val="${m}">${m}분</button>`
-              )
-              .join('')}
+
+          <div class="field-group">
+            <div class="field-label"><span>운동 시간 (초)</span></div>
+            <div class="stepper-row">
+              <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="-10">-10</button>
+              <div class="number-input-wrap">
+                <input type="number" id="input-seconds" class="number-input" min="0" max="59" value="${state.form.seconds}" />
+                <span class="unit-suffix">초</span>
+              </div>
+              <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="10">+10</button>
+            </div>
+            <div class="preset-chips">
+              ${[0, 15, 30, 45, 50]
+                .map(
+                  (s) =>
+                    `<button type="button" class="preset-btn" data-preset-field="seconds" data-preset-val="${s}">${s}초</button>`
+                )
+                .join('')}
+            </div>
           </div>
+        </div>
+
+        <div class="volume-preview" id="time-duration-preview">
+          <span>TOTAL TIME · 총 운동 시간 = <strong>${durationPreviewText}</strong></span>
         </div>
 
         ${
@@ -578,17 +606,22 @@
       countBadge.textContent = `${logs.length}건`;
     }
 
-    let dayMinutes = 0;
+    let dayTotalSeconds = 0;
     let daySets = 0;
     let dayReps = 0;
     logs.forEach((l) => {
       if (l.recordType === Models.RECORD_TYPES.TIME) {
-        dayMinutes += Number(l.minutes) || 0;
+        dayTotalSeconds += Math.round((Number(l.minutes) || 0) * 60 + (Number(l.seconds) || 0));
       } else {
         daySets += Number(l.sets) || 0;
         dayReps += (Number(l.reps) || 0) * (Number(l.sets) || 0);
       }
     });
+
+    const dayTimeText =
+      dayTotalSeconds > 0
+        ? Models.formatDuration(Math.floor(dayTotalSeconds / 60), dayTotalSeconds % 60)
+        : '0분';
 
     summaryEl.innerHTML = `
       <div class="summary-pill">
@@ -597,7 +630,7 @@
       </div>
       <div class="summary-pill">
         <div class="s-label">유산소 시간</div>
-        <div class="s-val">${dayMinutes}분</div>
+        <div class="s-val">${dayTimeText}</div>
       </div>
       <div class="summary-pill">
         <div class="s-label">근력 볼륨</div>
@@ -757,9 +790,9 @@
     const kpiContainer = document.getElementById('stats-kpi-grid');
     if (kpiContainer) {
       const hoursText =
-        summary.totalMinutes >= 60
-          ? `${Math.floor(summary.totalMinutes / 60)}시간 ${summary.totalMinutes % 60}분`
-          : `${summary.totalMinutes}분`;
+        summary.totalSeconds > 0
+          ? Models.formatDuration(summary.totalMinutes, summary.remainSeconds)
+          : '0분';
 
       kpiContainer.innerHTML = `
         <div class="kpi-card">
@@ -794,13 +827,19 @@
       }
       trendContainer.innerHTML = buckets
         .map((b) => {
+          const timePart =
+            b.totalSeconds > 0
+              ? b.minutes > 0
+                ? `${b.minutes}분`
+                : `${b.seconds}초`
+              : '';
           const valLabel =
             b.count === 0
               ? '-'
-              : b.minutes > 0 && b.sets > 0
-              ? `${b.minutes}분/${b.sets}셋`
-              : b.minutes > 0
-              ? `${b.minutes}분`
+              : timePart && b.sets > 0
+              ? `${timePart}/${b.sets}셋`
+              : timePart
+              ? timePart
               : `${b.sets}세트`;
           return `
             <div class="trend-col">
@@ -829,7 +868,7 @@
           .map((item) => {
             let detailText = '';
             if (item.recordType === Models.RECORD_TYPES.TIME) {
-              detailText = `누적 시간 ${item.totalMinutes}분`;
+              detailText = `누적 시간 ${Models.formatDuration(item.totalMinutes, item.remainSeconds)}`;
               if (item.totalDistanceKm > 0) {
                 detailText += ` · 누적 거리 ${Math.round(item.totalDistanceKm * 10) / 10}km`;
               }
@@ -866,13 +905,15 @@
    */
   function syncFormFromDOM() {
     const minEl = document.getElementById('input-minutes');
+    const secEl = document.getElementById('input-seconds');
     const distEl = document.getElementById('input-distance');
     const repsEl = document.getElementById('input-reps');
     const setsEl = document.getElementById('input-sets');
     const weightEl = document.getElementById('input-weight');
     const noteEl = document.getElementById('input-note');
 
-    if (minEl) state.form.minutes = Math.max(1, Number(minEl.value) || 1);
+    if (minEl) state.form.minutes = Math.max(0, Math.floor(Number(minEl.value) || 0));
+    if (secEl) state.form.seconds = Math.max(0, Math.floor(Number(secEl.value) || 0));
     if (distEl) state.form.distanceKm = distEl.value;
     if (repsEl) state.form.reps = Math.max(1, Number(repsEl.value) || 1);
     if (setsEl) state.form.sets = Math.max(1, Number(setsEl.value) || 1);
@@ -889,6 +930,15 @@
     const ex = exercises.find((e) => e.id === state.selectedExerciseId);
     if (!ex) return;
 
+    if (
+      ex.recordType === Models.RECORD_TYPES.TIME &&
+      (Number(state.form.minutes) || 0) <= 0 &&
+      (Number(state.form.seconds) || 0) <= 0
+    ) {
+      alert('운동 시간(분 또는 초)을 1초 이상 입력해 주세요.');
+      return;
+    }
+
     const payload = {
       date: state.selectedDate,
       exerciseId: ex.id,
@@ -896,6 +946,7 @@
       exerciseIcon: ex.icon,
       recordType: ex.recordType,
       minutes: state.form.minutes,
+      seconds: state.form.seconds,
       distanceKm: state.form.distanceKm,
       reps: state.form.reps,
       sets: state.form.sets,
@@ -1251,7 +1302,19 @@
         syncFormFromDOM();
         const field = stepBtn.dataset.stepField;
         const delta = Number(stepBtn.dataset.stepDelta) || 0;
-        state.form[field] = Math.max(1, (Number(state.form[field]) || 1) + delta);
+        if (field === 'minutes') {
+          state.form.minutes = Math.max(0, (Number(state.form.minutes) || 0) + delta);
+        } else if (field === 'seconds') {
+          let totalSec =
+            Math.max(0, Number(state.form.minutes) || 0) * 60 +
+            Math.max(0, Number(state.form.seconds) || 0) +
+            delta;
+          totalSec = Math.max(0, totalSec);
+          state.form.minutes = Math.floor(totalSec / 60);
+          state.form.seconds = totalSec % 60;
+        } else {
+          state.form[field] = Math.max(1, (Number(state.form[field]) || 1) + delta);
+        }
         renderInputForm();
         return;
       }
@@ -1260,8 +1323,8 @@
       if (presetBtn) {
         syncFormFromDOM();
         const field = presetBtn.dataset.presetField;
-        const val = Number(presetBtn.dataset.presetVal) || 1;
-        state.form[field] = val;
+        const val = Number(presetBtn.dataset.presetVal);
+        state.form[field] = Number.isNaN(val) ? 0 : val;
         renderInputForm();
         return;
       }
@@ -1284,6 +1347,13 @@
         if (preview) {
           const total = (Number(state.form.reps) || 0) * (Number(state.form.sets) || 0);
           preview.innerHTML = `<span>TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${total}회</strong></span>`;
+        }
+      } else if (e.target.id === 'input-minutes' || e.target.id === 'input-seconds') {
+        syncFormFromDOM();
+        const preview = document.getElementById('time-duration-preview');
+        if (preview) {
+          const durationText = Models.formatDuration(state.form.minutes, state.form.seconds);
+          preview.innerHTML = `<span>TOTAL TIME · 총 운동 시간 = <strong>${durationText}</strong></span>`;
         }
       }
     });

@@ -85,7 +85,7 @@ window.WorkoutStats = (function () {
    */
   function computeSummary(logs, allLogsForStreak = logs) {
     const uniqueDays = new Set();
-    let totalMinutes = 0;
+    let totalSeconds = 0;
     let totalDistanceKm = 0;
     let totalSets = 0;
     let totalReps = 0;
@@ -102,7 +102,9 @@ window.WorkoutStats = (function () {
           exerciseIcon: log.exerciseIcon || '🔥',
           recordType: log.recordType,
           count: 0,
+          totalSeconds: 0,
           totalMinutes: 0,
+          remainSeconds: 0,
           totalDistanceKm: 0,
           totalSets: 0,
           totalReps: 0,
@@ -115,10 +117,14 @@ window.WorkoutStats = (function () {
 
       if (log.recordType === RECORD_TYPES.TIME) {
         const mins = Number(log.minutes) || 0;
+        const secs = Number(log.seconds) || 0;
+        const logTotalSec = Math.round(mins * 60 + secs);
         const dist = Number(log.distanceKm) || 0;
-        totalMinutes += mins;
+        totalSeconds += logTotalSec;
         totalDistanceKm += dist;
-        exStat.totalMinutes += mins;
+        exStat.totalSeconds += logTotalSec;
+        exStat.totalMinutes = Math.floor(exStat.totalSeconds / 60);
+        exStat.remainSeconds = exStat.totalSeconds % 60;
         exStat.totalDistanceKm += dist;
       } else {
         const sets = Number(log.sets) || 0;
@@ -146,7 +152,9 @@ window.WorkoutStats = (function () {
     return {
       activeDaysCount: uniqueDays.size,
       totalLogsCount: logs.length,
-      totalMinutes,
+      totalSeconds,
+      totalMinutes: Math.floor(totalSeconds / 60),
+      remainSeconds: totalSeconds % 60,
       totalDistanceKm: Math.round(totalDistanceKm * 10) / 10,
       totalSets,
       totalReps,
@@ -156,22 +164,26 @@ window.WorkoutStats = (function () {
   }
 
   /**
-   * 로그 배열에서 시간(분), 세트 수, 활동 점수 합산 헬퍼
+   * 로그 배열에서 시간(분·초), 세트 수, 활동 점수 합산 헬퍼
    */
   function aggregateBucketMetrics(bucketLogs) {
-    let minutes = 0;
+    let totalSeconds = 0;
     let sets = 0;
     bucketLogs.forEach((l) => {
       if (l.recordType === RECORD_TYPES.TIME) {
-        minutes += Number(l.minutes) || 0;
+        totalSeconds += Math.round((Number(l.minutes) || 0) * 60 + (Number(l.seconds) || 0));
       } else {
         sets += Number(l.sets) || 0;
       }
     });
-    const activityScore = minutes / 10 + sets;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const activityScore = totalSeconds / 600 + sets;
     return {
       count: bucketLogs.length,
+      totalSeconds,
       minutes,
+      seconds,
       sets,
       activityScore,
     };
