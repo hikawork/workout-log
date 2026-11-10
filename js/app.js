@@ -1294,6 +1294,11 @@
       if (delBtn) {
         e.stopPropagation();
         const logId = delBtn.dataset.deleteId;
+        const targetLog = Repo.getAllLogs().find((l) => l.id === logId);
+        const label = targetLog ? `'${targetLog.exerciseName}' 운동 기록을` : '이 운동 기록을';
+        if (!confirm(`${label} 정말 삭제하시겠습니까?`)) {
+          return;
+        }
         Repo.deleteLog(logId);
         if (state.editingLogId === logId) {
           selectExerciseForDate(state.selectedExerciseId);
@@ -1349,6 +1354,11 @@
       if (delBtn) {
         e.stopPropagation();
         const logId = delBtn.dataset.calDeleteId;
+        const targetLog = Repo.getAllLogs().find((l) => l.id === logId);
+        const label = targetLog ? `'${targetLog.exerciseName}' 운동 기록을` : '이 운동 기록을';
+        if (!confirm(`${label} 정말 삭제하시겠습니까?`)) {
+          return;
+        }
         Repo.deleteLog(logId);
         if (state.editingLogId === logId) {
           state.editingLogId = null;
