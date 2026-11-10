@@ -37,11 +37,12 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 전체 운동 기록 저장하기
+   * 전체 운동 기록 저장하기 (+ 연결된 로컬 파일이 있으면 자동 저장 트리거)
    */
   function saveAllLogs(logs) {
     try {
       localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+      scheduleAutoFileSave();
       return true;
     } catch (e) {
       console.error('운동 기록 저장 중 오류 발생:', e);
@@ -158,6 +159,7 @@ window.WorkoutRepository = (function () {
   function saveExerciseOrder(orderedIds) {
     if (!Array.isArray(orderedIds)) return;
     localStorage.setItem(STORAGE_KEYS.EXERCISE_ORDER, JSON.stringify(orderedIds));
+    scheduleAutoFileSave();
   }
 
   /**
@@ -237,6 +239,7 @@ window.WorkoutRepository = (function () {
     };
     customs.push(newExercise);
     localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(customs));
+    scheduleAutoFileSave();
     return newExercise;
   }
 
@@ -287,6 +290,8 @@ window.WorkoutRepository = (function () {
     });
     if (logsModified) {
       saveAllLogs(logs);
+    } else {
+      scheduleAutoFileSave();
     }
 
     return getAllExercises().find((ex) => ex.id === exerciseId);
@@ -307,6 +312,7 @@ window.WorkoutRepository = (function () {
       const customs = getCustomExercises().filter((ex) => ex.id !== exerciseId);
       localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(customs));
     }
+    scheduleAutoFileSave();
   }
 
   /**
@@ -315,6 +321,7 @@ window.WorkoutRepository = (function () {
   function restoreDefaultExercises() {
     localStorage.removeItem(STORAGE_KEYS.DELETED_DEFAULT_EXERCISES);
     localStorage.removeItem(STORAGE_KEYS.EXERCISE_OVERRIDES);
+    scheduleAutoFileSave();
   }
 
   /**
@@ -328,6 +335,7 @@ window.WorkoutRepository = (function () {
       customExercises: getCustomExercises(),
       deletedDefaultIds: getDeletedDefaultIds(),
       exerciseOrder: getExerciseOrder(),
+      exerciseOverrides: getExerciseOverrides(),
     };
   }
 
@@ -338,7 +346,6 @@ window.WorkoutRepository = (function () {
     if (!data || !Array.isArray(data.logs)) {
       throw new Error('올바른 백업 파일 형식이 아닙니다.');
     }
-    saveAllLogs(data.logs);
     if (Array.isArray(data.customExercises)) {
       localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(data.customExercises));
     }
@@ -349,8 +356,15 @@ window.WorkoutRepository = (function () {
       );
     }
     if (Array.isArray(data.exerciseOrder)) {
-      saveExerciseOrder(data.exerciseOrder);
+      localStorage.setItem(STORAGE_KEYS.EXERCISE_ORDER, JSON.stringify(data.exerciseOrder));
     }
+    if (data.exerciseOverrides && typeof data.exerciseOverrides === 'object') {
+      localStorage.setItem(
+        STORAGE_KEYS.EXERCISE_OVERRIDES,
+        JSON.stringify(data.exerciseOverrides)
+      );
+    }
+    saveAllLogs(data.logs);
     return data.logs.length;
   }
 
@@ -359,6 +373,7 @@ window.WorkoutRepository = (function () {
    */
   function clearAllData() {
     localStorage.removeItem(STORAGE_KEYS.LOGS);
+    scheduleAutoFileSave();
   }
 
   /**
@@ -456,6 +471,273 @@ window.WorkoutRepository = (function () {
     return existingLogs.length;
   }
 
+  // =========================================================================
+  // 실시간 로컬 파일 자동 저장 (File System Access API + IndexedDB 핸들 보관)
+  // =========================================================================
+  const IDB_NAME = 'workout_file_sync_db_v1';
+  const IDB_STORE = 'handles';
+  const IDB_KEY = 'active_workout_file';
+
+  let activeFileHandle = null;
+  let syncStatus = 'disconnected'; // 'disconnected' | 'needs_permission' | 'connected'
+  let lastSavedTimeStr = '';
+  let syncListeners = [];
+  let autoSaveTimer = null;
+
+  function isFileSystemAccessSupported() {
+    return (
+      typeof window.showSaveFilePicker === 'function' &&
+      typeof window.showOpenFilePicker === 'function'
+    );
+  }
+
+  function onFileSyncChange(listener) {
+    if (typeof listener === 'function') {
+      syncListeners.push(listener);
+    }
+  }
+
+  function notifySyncListeners() {
+    const info = getFileSyncStatus();
+    syncListeners.forEach((fn) => {
+      try {
+        fn(info);
+      } catch (e) {}
+    });
+  }
+
+  function getFileSyncStatus() {
+    return {
+      supported: isFileSystemAccessSupported(),
+      status: syncStatus,
+      fileName: activeFileHandle ? activeFileHandle.name : '',
+      lastSavedAt: lastSavedTimeStr,
+    };
+  }
+
+  function openHandleDB() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('IndexedDB not supported'));
+        return;
+      }
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function saveHandleToIDB(handle) {
+    try {
+      const db = await openHandleDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function loadHandleFromIDB() {
+    try {
+      const db = await openHandleDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function removeHandleFromIDB() {
+    try {
+      const db = await openHandleDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(IDB_KEY);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * 앱 시작 시 이전에 연결했던 파일 핸들이 있는지 확인
+   */
+  async function initSavedFileHandle() {
+    if (!isFileSystemAccessSupported()) {
+      notifySyncListeners();
+      return;
+    }
+    const handle = await loadHandleFromIDB();
+    if (!handle) {
+      syncStatus = 'disconnected';
+      notifySyncListeners();
+      return;
+    }
+
+    activeFileHandle = handle;
+    try {
+      const perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        syncStatus = 'connected';
+        await writeCurrentDataToFile();
+      } else {
+        syncStatus = 'needs_permission';
+      }
+    } catch (e) {
+      syncStatus = 'needs_permission';
+    }
+    notifySyncListeners();
+  }
+
+  /**
+   * 연결된 파일에 현재 데이터를 즉시 기록
+   */
+  async function writeCurrentDataToFile() {
+    if (!activeFileHandle || syncStatus !== 'connected') return false;
+    try {
+      const writable = await activeFileHandle.createWritable();
+      const payload = JSON.stringify(exportBackupData(), null, 2);
+      await writable.write(payload);
+      await writable.close();
+      const now = new Date();
+      lastSavedTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
+        now.getMinutes()
+      ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      notifySyncListeners();
+      return true;
+    } catch (e) {
+      console.error('로컬 파일 자동 저장 실패:', e);
+      return false;
+    }
+  }
+
+  /**
+   * 데이터 변경 시 디바운스로 로컬 파일에 자동 덮어쓰기
+   */
+  function scheduleAutoFileSave() {
+    if (!activeFileHandle || syncStatus !== 'connected') return;
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      writeCurrentDataToFile();
+    }, 120);
+  }
+
+  /**
+   * 1. 새 저장 파일을 내 컴퓨터에 만들고 실시간 자동 저장 연결
+   */
+  async function connectNewSyncFile() {
+    if (!isFileSystemAccessSupported()) {
+      throw new Error('현재 브라우저는 직접 파일 연결을 지원하지 않습니다. 크롬/엣지를 이용해 주세요.');
+    }
+    const handle = await window.showSaveFilePicker({
+      suggestedName: 'workout-data.json',
+      types: [
+        {
+          description: '오늘운동 데이터 파일 (JSON)',
+          accept: { 'application/json': ['.json'] },
+        },
+      ],
+    });
+    activeFileHandle = handle;
+    syncStatus = 'connected';
+    await saveHandleToIDB(handle);
+    await writeCurrentDataToFile();
+    notifySyncListeners();
+    return handle.name;
+  }
+
+  /**
+   * 2. 내 컴퓨터에 있던 기존 데이터 파일을 열어서 복원 + 실시간 자동 저장 연결
+   */
+  async function openExistingSyncFile() {
+    if (!isFileSystemAccessSupported()) {
+      throw new Error('현재 브라우저는 직접 파일 연결을 지원하지 않습니다. 크롬/엣지를 이용해 주세요.');
+    }
+    const [handle] = await window.showOpenFilePicker({
+      multiple: false,
+      types: [
+        {
+          description: '오늘운동 데이터 파일 (JSON)',
+          accept: { 'application/json': ['.json'] },
+        },
+      ],
+    });
+    if (!handle) return null;
+
+    const perm = await handle.requestPermission({ mode: 'readwrite' });
+    const file = await handle.getFile();
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+
+    activeFileHandle = handle;
+    syncStatus = perm === 'granted' ? 'connected' : 'needs_permission';
+    await saveHandleToIDB(handle);
+    importBackupData(parsed);
+    if (syncStatus === 'connected') {
+      await writeCurrentDataToFile();
+    }
+    notifySyncListeners();
+    return { fileName: handle.name, count: Array.isArray(parsed.logs) ? parsed.logs.length : 0 };
+  }
+
+  /**
+   * 3. 이전에 연결했던 파일 권한 1클릭 재승인 (브라우저 재시작 후)
+   */
+  async function reconnectRememberedFile() {
+    if (!activeFileHandle) return false;
+    const perm = await activeFileHandle.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      syncStatus = 'connected';
+      // 파일에 저장된 최신 데이터가 있고 로컬이 비어있다면 파일에서 자동 복원
+      try {
+        const file = await activeFileHandle.getFile();
+        const text = await file.text();
+        if (text.trim()) {
+          const parsed = JSON.parse(text);
+          if (
+            parsed &&
+            Array.isArray(parsed.logs) &&
+            getAllLogs().length === 0 &&
+            parsed.logs.length > 0
+          ) {
+            importBackupData(parsed);
+          }
+        }
+      } catch (e) {}
+      await writeCurrentDataToFile();
+      notifySyncListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 4. 파일 자동 저장 연결 해제
+   */
+  async function disconnectSyncFile() {
+    activeFileHandle = null;
+    syncStatus = 'disconnected';
+    lastSavedTimeStr = '';
+    await removeHandleFromIDB();
+    notifySyncListeners();
+  }
+
   return {
     getAllLogs,
     getLogsByDate,
@@ -477,5 +759,14 @@ window.WorkoutRepository = (function () {
     importBackupData,
     clearAllData,
     seedSampleData,
+    // 로컬 파일 실시간 자동 동기화 API
+    isFileSystemAccessSupported,
+    initSavedFileHandle,
+    onFileSyncChange,
+    getFileSyncStatus,
+    connectNewSyncFile,
+    openExistingSyncFile,
+    reconnectRememberedFile,
+    disconnectSyncFile,
   };
 })();

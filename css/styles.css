@@ -234,6 +234,86 @@ body {
   }
 }
 
+/* 로컬 파일 실시간 자동저장 상태 바 */
+.file-sync-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.file-sync-bar.connected {
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.file-sync-bar.needs-perm {
+  border-color: rgba(251, 146, 60, 0.5);
+  background: var(--accent-orange-soft);
+}
+
+.sync-info-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.file-sync-bar.connected .sync-dot {
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+
+.file-sync-bar.needs-perm .sync-dot {
+  background: var(--accent-orange);
+  box-shadow: 0 0 8px var(--accent-orange);
+}
+
+.sync-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sync-action-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sync-action-btn.primary {
+  background: var(--primary);
+  color: var(--primary-text-on);
+  border-color: transparent;
+}
+
+.sync-action-btn:hover {
+  border-color: var(--primary);
+}
+
 /* 벤토 카드 */
 .card {
   background: var(--bg-card);

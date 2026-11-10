@@ -42,6 +42,10 @@
     renderCustomIconPicker();
     selectExerciseForDate(state.selectedExerciseId);
     bindStaticEvents();
+    Repo.onFileSyncChange(() => {
+      renderFileSyncBar();
+    });
+    Repo.initSavedFileHandle();
     renderAll();
   }
 
@@ -223,6 +227,7 @@
    * 전체 화면 갱신
    */
   function renderAll() {
+    renderFileSyncBar();
     renderHeaderStreak();
     renderDateNavigator();
     renderExerciseGrid();
@@ -230,6 +235,74 @@
     renderDailyLogs();
     renderCalendarTab();
     renderStatsTab();
+  }
+
+  /**
+   * 상단 로컬 파일 실시간 자동저장 상태 바 렌더링
+   */
+  function renderFileSyncBar() {
+    const bar = document.getElementById('file-sync-bar');
+    if (!bar) return;
+
+    const info = Repo.getFileSyncStatus();
+    bar.classList.remove('connected', 'needs-perm');
+
+    if (!info.supported) {
+      bar.innerHTML = `
+        <div class="sync-info-group">
+          <span class="sync-dot"></span>
+          <span>💾 파일 보관 (수동 다운로드/불러오기)</span>
+        </div>
+        <div class="sync-btn-group">
+          <button type="button" class="sync-action-btn primary" data-sync-act="manual-export">파일로 저장</button>
+          <button type="button" class="sync-action-btn" data-sync-act="manual-import">파일 열기</button>
+        </div>
+      `;
+      return;
+    }
+
+    if (info.status === 'connected') {
+      bar.classList.add('connected');
+      const savedText = info.lastSavedAt ? ` · ${info.lastSavedAt} 저장됨` : '';
+      bar.innerHTML = `
+        <div class="sync-info-group">
+          <span class="sync-dot"></span>
+          <span>파일 자동저장 켜짐 · <strong>${escapeHtml(info.fileName)}</strong>${savedText}</span>
+        </div>
+        <div class="sync-btn-group">
+          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="다른 데이터 파일 열기">파일 변경</button>
+          <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 해제">해제</button>
+        </div>
+      `;
+      return;
+    }
+
+    if (info.status === 'needs_permission') {
+      bar.classList.add('needs-perm');
+      bar.innerHTML = `
+        <div class="sync-info-group">
+          <span class="sync-dot"></span>
+          <span>이전 파일(<strong>${escapeHtml(info.fileName)}</strong>)에 자동저장을 이어갈까요?</span>
+        </div>
+        <div class="sync-btn-group">
+          <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
+          <button type="button" class="sync-action-btn" data-sync-act="connect-new">새 파일</button>
+        </div>
+      `;
+      return;
+    }
+
+    // 기본: disconnected
+    bar.innerHTML = `
+      <div class="sync-info-group">
+        <span class="sync-dot"></span>
+        <span>💾 내 컴퓨터 파일에 실시간 자동저장 연결 (캐시 삭제 안심)</span>
+      </div>
+      <div class="sync-btn-group">
+        <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
+        <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
+      </div>
+    `;
   }
 
   /**
@@ -1011,6 +1084,47 @@
    * 이벤트 바인딩
    */
   function bindStaticEvents() {
+    // 0. 상단 로컬 파일 실시간 자동저장 바 이벤트
+    document.getElementById('file-sync-bar')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-sync-act]');
+      if (!btn) return;
+      const act = btn.dataset.syncAct;
+
+      try {
+        if (act === 'connect-new') {
+          const fileName = await Repo.connectNewSyncFile();
+          showToast(`'${fileName}' 파일에 실시간 자동저장이 연결되었습니다!`);
+          renderAll();
+        } else if (act === 'open-existing') {
+          const res = await Repo.openExistingSyncFile();
+          if (res) {
+            selectExerciseForDate(state.selectedExerciseId);
+            showToast(`'${res.fileName}' 파일(${res.count}건)을 불러오고 자동저장을 연결했습니다!`);
+            renderAll();
+          }
+        } else if (act === 'reconnect') {
+          const ok = await Repo.reconnectRememberedFile();
+          if (ok) {
+            selectExerciseForDate(state.selectedExerciseId);
+            showToast('파일 실시간 자동저장이 다시 활성화되었습니다!');
+            renderAll();
+          }
+        } else if (act === 'disconnect') {
+          await Repo.disconnectSyncFile();
+          showToast('파일 자동저장 연결이 해제되었습니다.');
+          renderFileSyncBar();
+        } else if (act === 'manual-export') {
+          document.getElementById('export-json-btn')?.click();
+        } else if (act === 'manual-import') {
+          document.getElementById('import-json-input')?.click();
+        }
+      } catch (err) {
+        if (err && err.name !== 'AbortError') {
+          alert(err.message || '파일 연결 중 오류가 발생했습니다.');
+        }
+      }
+    });
+
     // 1. 운동 종목 카드 드래그 앤 드롭 순서 변경
     bindSortableContainer('exercise-grid', '.exercise-chip[data-ex-id]', 'data-ex-id', (orderedIds) => {
       Repo.saveExerciseOrder(orderedIds);
