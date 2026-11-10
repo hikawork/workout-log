@@ -37,9 +37,12 @@
   --radius-sm: 10px;
   --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.45);
   --nav-bg: rgba(15, 23, 42, 0.85);
+  --brand-gradient: linear-gradient(135deg, #a3e635 0%, #10b981 100%);
+  --shell-glow-1: rgba(163, 230, 53, 0.08);
+  --shell-glow-2: rgba(56, 189, 248, 0.07);
 }
 
-/* 라이트 테마 (상단 테마 버튼으로 언제든 전환 가능) */
+/* 2. 라이트 테마: 클린 데이라이트 */
 [data-theme='light'] {
   --bg-outer: #e2e8f0;
   --bg-shell: #f1f5f9;
@@ -69,6 +72,149 @@
 
   --shadow-card: 0 8px 24px -6px rgba(15, 23, 42, 0.07);
   --nav-bg: rgba(255, 255, 255, 0.88);
+  --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+  --shell-glow-1: rgba(79, 70, 229, 0.07);
+  --shell-glow-2: rgba(14, 165, 233, 0.07);
+}
+
+/* 3. 봄(Spring) 테마: 사쿠라 블라썸 & 새싹 민트 (Sakura Breeze) */
+[data-theme='spring'] {
+  --bg-outer: #fce7f3;
+  --bg-shell: #fff5f8;
+  --bg-card: rgba(255, 255, 255, 0.88);
+  --bg-card-solid: #ffffff;
+  --bg-subtle: #fdf2f8;
+  --bg-input: #ffffff;
+  --text-primary: #4a1d33;
+  --text-secondary: #83385b;
+  --text-muted: #b87a98;
+  --border-color: rgba(236, 72, 153, 0.15);
+  --border-highlight: rgba(244, 63, 94, 0.45);
+
+  --primary: #ec4899;
+  --primary-text-on: #ffffff;
+  --primary-hover: #db2777;
+  --primary-soft: rgba(236, 72, 153, 0.12);
+  --primary-glow: rgba(236, 72, 153, 0.26);
+
+  --secondary-accent: #10b981;
+  --secondary-soft: rgba(16, 185, 129, 0.14);
+
+  --accent-orange: #f97316;
+  --accent-orange-soft: rgba(249, 115, 22, 0.12);
+  --danger: #e11d48;
+  --danger-soft: rgba(225, 29, 72, 0.12);
+
+  --shadow-card: 0 10px 26px -8px rgba(219, 39, 119, 0.12);
+  --nav-bg: rgba(255, 245, 248, 0.9);
+  --brand-gradient: linear-gradient(135deg, #f43f5e 0%, #f472b6 55%, #34d399 100%);
+  --shell-glow-1: rgba(244, 114, 182, 0.18);
+  --shell-glow-2: rgba(52, 211, 153, 0.14);
+}
+
+/* 4. 여름(Summer) 테마: 트로피컬 오션 & 네온 아쿠아 (Ocean Surf) */
+[data-theme='summer'] {
+  --bg-outer: #03111f;
+  --bg-shell: #061d33;
+  --bg-card: rgba(10, 39, 68, 0.8);
+  --bg-card-solid: #0b2948;
+  --bg-subtle: rgba(14, 52, 88, 0.72);
+  --bg-input: #07213a;
+  --text-primary: #ecfeff;
+  --text-secondary: #7dd3fc;
+  --text-muted: #38bdf8;
+  --border-color: rgba(34, 211, 238, 0.18);
+  --border-highlight: rgba(0, 242, 254, 0.52);
+
+  --primary: #00f2fe;
+  --primary-text-on: #04182b;
+  --primary-hover: #67e8f9;
+  --primary-soft: rgba(0, 242, 254, 0.15);
+  --primary-glow: rgba(0, 242, 254, 0.32);
+
+  --secondary-accent: #fb7185;
+  --secondary-soft: rgba(251, 113, 133, 0.18);
+
+  --accent-orange: #facc15;
+  --accent-orange-soft: rgba(250, 204, 21, 0.16);
+  --danger: #ff6b6b;
+  --danger-soft: rgba(255, 107, 107, 0.18);
+
+  --shadow-card: 0 12px 30px -10px rgba(0, 12, 28, 0.55);
+  --nav-bg: rgba(6, 29, 51, 0.88);
+  --brand-gradient: linear-gradient(135deg, #00f2fe 0%, #0ea5e9 55%, #38ef7d 100%);
+  --shell-glow-1: rgba(0, 242, 254, 0.16);
+  --shell-glow-2: rgba(56, 239, 125, 0.1);
+}
+
+/* 5. 가을(Autumn) 테마: 메이플 에스프레소 & 앰버 골드 (Maple Harvest) */
+[data-theme='autumn'] {
+  --bg-outer: #140d09;
+  --bg-shell: #1f140e;
+  --bg-card: rgba(45, 29, 20, 0.84);
+  --bg-card-solid: #2d1d14;
+  --bg-subtle: rgba(62, 39, 26, 0.72);
+  --bg-input: #23160f;
+  --text-primary: #fff7ed;
+  --text-secondary: #fdba74;
+  --text-muted: #a87b58;
+  --border-color: rgba(251, 146, 60, 0.18);
+  --border-highlight: rgba(245, 158, 11, 0.5);
+
+  --primary: #f59e0b;
+  --primary-text-on: #1c1008;
+  --primary-hover: #fbbf24;
+  --primary-soft: rgba(245, 158, 11, 0.16);
+  --primary-glow: rgba(245, 158, 11, 0.3);
+
+  --secondary-accent: #ea580c;
+  --secondary-soft: rgba(234, 88, 12, 0.18);
+
+  --accent-orange: #ef4444;
+  --accent-orange-soft: rgba(239, 68, 68, 0.18);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.18);
+
+  --shadow-card: 0 12px 30px -10px rgba(10, 5, 2, 0.6);
+  --nav-bg: rgba(31, 20, 14, 0.9);
+  --brand-gradient: linear-gradient(135deg, #f59e0b 0%, #ea580c 60%, #dc2626 100%);
+  --shell-glow-1: rgba(245, 158, 11, 0.15);
+  --shell-glow-2: rgba(234, 88, 12, 0.12);
+}
+
+/* 6. 겨울(Winter) 테마: 노르딕 설원 & 아이스 오로라 (Frost Aurora) */
+[data-theme='winter'] {
+  --bg-outer: #dbeafe;
+  --bg-shell: #eff6ff;
+  --bg-card: rgba(255, 255, 255, 0.86);
+  --bg-card-solid: #ffffff;
+  --bg-subtle: rgba(224, 242, 254, 0.72);
+  --bg-input: #ffffff;
+  --text-primary: #0c2340;
+  --text-secondary: #3b638c;
+  --text-muted: #7aa0c4;
+  --border-color: rgba(2, 132, 199, 0.15);
+  --border-highlight: rgba(14, 165, 233, 0.48);
+
+  --primary: #0284c7;
+  --primary-text-on: #ffffff;
+  --primary-hover: #0369a1;
+  --primary-soft: rgba(2, 132, 199, 0.12);
+  --primary-glow: rgba(56, 189, 248, 0.28);
+
+  --secondary-accent: #8b5cf6;
+  --secondary-soft: rgba(139, 92, 246, 0.14);
+
+  --accent-orange: #06b6d4;
+  --accent-orange-soft: rgba(6, 182, 212, 0.14);
+  --danger: #f43f5e;
+  --danger-soft: rgba(244, 63, 94, 0.12);
+
+  --shadow-card: 0 10px 28px -8px rgba(2, 132, 199, 0.12);
+  --nav-bg: rgba(239, 246, 255, 0.88);
+  --brand-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 50%, #8b5cf6 100%);
+  --shell-glow-1: rgba(56, 189, 248, 0.18);
+  --shell-glow-2: rgba(139, 92, 246, 0.14);
 }
 
 * {
@@ -96,13 +242,14 @@ body {
   max-width: 520px;
   min-height: 100vh;
   background-color: var(--bg-shell);
-  background-image: radial-gradient(at 90% 5%, rgba(163, 230, 53, 0.08) 0px, transparent 50%),
-    radial-gradient(at 10% 30%, rgba(56, 189, 248, 0.07) 0px, transparent 50%);
+  background-image: radial-gradient(at 90% 5%, var(--shell-glow-1) 0px, transparent 52%),
+    radial-gradient(at 10% 30%, var(--shell-glow-2) 0px, transparent 52%);
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
   overflow-x: hidden;
+  transition: background-color 0.25s ease;
 }
 
 /* 상단 헤더 (글래스모피즘) */
@@ -130,12 +277,13 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 13px;
-  background: linear-gradient(135deg, #a3e635 0%, #10b981 100%);
-  color: #090d16;
+  background: var(--brand-gradient);
+  color: var(--primary-text-on);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(163, 230, 53, 0.32);
+  box-shadow: 0 6px 16px var(--primary-glow);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .brand-logo svg {
@@ -163,6 +311,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 
 .streak-badge {
@@ -180,17 +329,21 @@ body {
 }
 
 .theme-toggle-btn {
-  width: 36px;
   height: 36px;
+  padding: 0 11px;
   border-radius: 11px;
   border: 1px solid var(--border-color);
   background: var(--bg-subtle);
   color: var(--text-primary);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s, border-color 0.15s;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .theme-toggle-btn:hover {
@@ -199,8 +352,106 @@ body {
 }
 
 .theme-toggle-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+}
+
+/* 6종 테마 선택 팝오버 메뉴 */
+.theme-picker-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideUpFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-picker-popover.open {
+  display: flex;
+}
+
+.theme-picker-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+  padding: 0 4px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+.theme-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.theme-option-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.theme-option-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.theme-swatch-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.theme-opt-texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.theme-opt-name {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.theme-opt-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 메인 콘텐츠 영역 */

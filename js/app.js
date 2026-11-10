@@ -11,6 +11,63 @@
 
   const THEME_STORAGE_KEY = 'workout_app_theme_v1';
 
+  const THEMES = [
+    {
+      id: 'dark',
+      label: '네온 다크',
+      short: '🌙 다크',
+      desc: '일렉트릭 라임',
+      icon: '🌙',
+      swatch: 'linear-gradient(135deg, #0d121f 0%, #a3e635 100%)',
+      metaColor: '#0d121f',
+    },
+    {
+      id: 'light',
+      label: '클린 라이트',
+      short: '☀️ 라이트',
+      desc: '화이트 & 인디고',
+      icon: '☀️',
+      swatch: 'linear-gradient(135deg, #f8fafc 0%, #4f46e5 100%)',
+      metaColor: '#f1f5f9',
+    },
+    {
+      id: 'spring',
+      label: '봄 · 사쿠라',
+      short: '🌸 봄',
+      desc: '벚꽃 핑크 & 새싹 민트',
+      icon: '🌸',
+      swatch: 'linear-gradient(135deg, #f43f5e 0%, #f472b6 55%, #34d399 100%)',
+      metaColor: '#fff5f8',
+    },
+    {
+      id: 'summer',
+      label: '여름 · 오션',
+      short: '🌊 여름',
+      desc: '딥 마린 & 네온 아쿠아',
+      icon: '🌊',
+      swatch: 'linear-gradient(135deg, #061d33 0%, #00f2fe 100%)',
+      metaColor: '#061d33',
+    },
+    {
+      id: 'autumn',
+      label: '가을 · 메이플',
+      short: '🍁 가을',
+      desc: '에스프레소 & 앰버 골드',
+      icon: '🍁',
+      swatch: 'linear-gradient(135deg, #2d1d14 0%, #f59e0b 60%, #ea580c 100%)',
+      metaColor: '#1f140e',
+    },
+    {
+      id: 'winter',
+      label: '겨울 · 오로라',
+      short: '❄️ 겨울',
+      desc: '노르딕 설원 & 아이스',
+      icon: '❄️',
+      swatch: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 50%, #8b5cf6 100%)',
+      metaColor: '#eff6ff',
+    },
+  ];
+
   // 앱 상태
   const state = {
     activeTab: 'log', // 'log' | 'calendar' | 'stats'
@@ -51,35 +108,55 @@
   }
 
   /**
-   * 다크/라이트 테마 초기화 및 전환
+   * 6종 테마(다크/라이트 + 봄/여름/가을/겨울) 초기화 및 전환
    */
   function initTheme() {
     const saved = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
     applyTheme(saved);
   }
 
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-    const svgEl = document.getElementById('theme-icon-svg');
-    if (!svgEl) return;
-    if (theme === 'dark') {
-      // 해 아이콘 (클릭 시 라이트 모드로)
-      svgEl.innerHTML = `
-        <circle cx="12" cy="12" r="5"></circle>
-        <line x1="12" y1="1" x2="12" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="23"></line>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-        <line x1="1" y1="12" x2="3" y2="12"></line>
-        <line x1="21" y1="12" x2="23" y2="12"></line>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-      `;
-    } else {
-      // 달 아이콘 (클릭 시 다크 모드로)
-      svgEl.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+  function applyTheme(themeId) {
+    const target = THEMES.find((t) => t.id === themeId) || THEMES[0];
+    document.documentElement.setAttribute('data-theme', target.id);
+    localStorage.setItem(THEME_STORAGE_KEY, target.id);
+
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', target.metaColor);
     }
+
+    const toggleBtn = document.getElementById('theme-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = `<span>${target.short}</span><span style="font-size:10px;opacity:0.75">▾</span>`;
+    }
+
+    renderThemePickerPopover(target.id);
+  }
+
+  function renderThemePickerPopover(activeThemeId) {
+    const popover = document.getElementById('theme-picker-popover');
+    if (!popover) return;
+
+    popover.innerHTML = `
+      <div class="theme-picker-title">
+        <span>🎨 테마 선택 (기본 2종 + 사계절 4종)</span>
+      </div>
+      <div class="theme-picker-grid">
+        ${THEMES.map(
+          (t) => `
+          <button type="button" class="theme-option-btn ${
+            t.id === activeThemeId ? 'active' : ''
+          }" data-pick-theme="${t.id}">
+            <span class="theme-swatch-dot" style="background: ${t.swatch}">${t.icon}</span>
+            <span class="theme-opt-texts">
+              <span class="theme-opt-name">${t.label}</span>
+              <span class="theme-opt-desc">${t.desc}</span>
+            </span>
+          </button>
+        `
+        ).join('')}
+      </div>
+    `;
   }
 
   /**
@@ -1190,12 +1267,30 @@
       renderDailyLogs();
       showToast('운동 기록 순서가 변경되었습니다.');
     });
-    // 다크/라이트 테마 전환 버튼
-    document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = cur === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      showToast(next === 'dark' ? '네온 다크 테마가 적용되었습니다.' : '라이트 테마가 적용되었습니다.');
+    // 6종 테마 선택 팝오버 열기/닫기 및 테마 적용
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themePopover = document.getElementById('theme-picker-popover');
+
+    themeToggleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themePopover?.classList.toggle('open');
+    });
+
+    themePopover?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const optBtn = e.target.closest('[data-pick-theme]');
+      if (!optBtn) return;
+      const chosenId = optBtn.dataset.pickTheme;
+      const chosenObj = THEMES.find((t) => t.id === chosenId);
+      applyTheme(chosenId);
+      themePopover.classList.remove('open');
+      if (chosenObj) {
+        showToast(`${chosenObj.icon} '${chosenObj.label}' 테마가 적용되었습니다!`);
+      }
+    });
+
+    document.addEventListener('click', () => {
+      themePopover?.classList.remove('open');
     });
 
     // 하단 탭 전환
