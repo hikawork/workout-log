@@ -260,6 +260,7 @@
           <span>파일 자동저장 켜짐 · <strong>${escapeHtml(info.fileName)}</strong>${savedText}</span>
         </div>
         <div class="sync-btn-group">
+          <button type="button" class="sync-action-btn primary" data-sync-act="save-backup-as" title="현재 기록을 별도 이름의 JSON 파일로 백업 저장">💾 다른 이름으로 백업</button>
           <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="저장된 파일 불러오기">📂 파일 열기</button>
           <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 해제">해제</button>
         </div>
@@ -276,13 +277,14 @@
         </div>
         <div class="sync-btn-group">
           <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
+          <button type="button" class="sync-action-btn" data-sync-act="save-backup-as">💾 다른 이름으로 백업</button>
           <button type="button" class="sync-action-btn" data-sync-act="connect-new">새 파일</button>
         </div>
       `;
       return;
     }
 
-    // 기본: disconnected (PC 및 모바일 모두 동일한 '+ 새 파일 연결' / '📂 기존 파일 열기' 제공)
+    // 기본: disconnected (PC 및 모바일 모두 동일한 '+ 새 파일 연결' / '📂 기존 파일 열기' / '💾 다른 이름으로 백업' 제공)
     bar.innerHTML = `
       <div class="sync-info-group">
         <span class="sync-dot"></span>
@@ -291,6 +293,7 @@
       <div class="sync-btn-group">
         <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
         <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
+        <button type="button" class="sync-action-btn" data-sync-act="save-backup-as" title="별도 이름의 JSON 파일로 백업 저장">💾 다른 이름으로 백업</button>
       </div>
     `;
   }
@@ -1150,8 +1153,11 @@
           await Repo.disconnectSyncFile();
           showToast('파일 자동저장 연결이 해제되었습니다.');
           renderFileSyncBar();
-        } else if (act === 'manual-export') {
-          document.getElementById('export-json-btn')?.click();
+        } else if (act === 'save-backup-as' || act === 'manual-export') {
+          const savedName = await Repo.saveBackupCopyAs();
+          if (savedName) {
+            showToast(`'${savedName}' 이름으로 백업 파일이 저장되었습니다!`);
+          }
         } else if (act === 'manual-import') {
           document.getElementById('import-json-input')?.click();
         }
@@ -1489,16 +1495,17 @@
       }
     });
 
-    document.getElementById('export-json-btn')?.addEventListener('click', () => {
-      const data = Repo.exportBackupData();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `workout-backup-${Models.formatDateKey(new Date())}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('백업 파일이 다운로드되었습니다.');
+    document.getElementById('export-json-btn')?.addEventListener('click', async () => {
+      try {
+        const savedName = await Repo.saveBackupCopyAs();
+        if (savedName) {
+          showToast(`'${savedName}' 이름으로 백업 파일이 저장되었습니다!`);
+        }
+      } catch (err) {
+        if (err && err.name !== 'AbortError') {
+          alert('백업 파일 저장 중 오류가 발생했습니다.');
+        }
+      }
     });
 
     document.getElementById('import-json-input')?.addEventListener('change', (e) => {

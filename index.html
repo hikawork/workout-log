@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css?v=20261111_3" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261111_4" />
   </head>
   <body>
     <div class="app-shell">
@@ -58,6 +58,7 @@
           <div class="sync-btn-group">
             <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
             <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
+            <button type="button" class="sync-action-btn" data-sync-act="save-backup-as">💾 다른 이름으로 백업</button>
           </div>
         </div>
 
@@ -189,7 +190,7 @@
               <button type="button" id="seed-sample-btn" class="preset-btn" style="font-weight: 800; color: var(--primary); border-color: var(--border-highlight)">
                 + 최근 2주 샘플 기록 채우기
               </button>
-              <button type="button" id="export-json-btn" class="preset-btn">백업 파일 저장(JSON)</button>
+              <button type="button" id="export-json-btn" class="preset-btn">💾 다른 이름으로 백업 저장(JSON)</button>
               <label class="preset-btn" style="cursor: pointer">
                 백업 불러오기
                 <input type="file" id="import-json-input" accept=".json" style="display: none" />
@@ -268,10 +269,10 @@
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js?v=20261111_3"></script>
-    <script src="./js/models.js?v=20261111_3"></script>
-    <script src="./js/repository.js?v=20261111_3"></script>
-    <script src="./js/stats.js?v=20261111_3"></script>
-    <script src="./js/app.js?v=20261111_3"></script>
+    <script src="./js/icons.js?v=20261111_4"></script>
+    <script src="./js/models.js?v=20261111_4"></script>
+    <script src="./js/repository.js?v=20261111_4"></script>
+    <script src="./js/stats.js?v=20261111_4"></script>
+    <script src="./js/app.js?v=20261111_4"></script>
   </body>
 </html>

@@ -819,6 +819,58 @@ window.WorkoutRepository = (function () {
     notifySyncListeners();
   }
 
+  /**
+   * 5. 현재 연결된 파일은 유지한 채로, 별도의 파일 이름으로 백업본 저장 (PC + 모바일 모두 지원)
+   */
+  async function saveBackupCopyAs() {
+    const todayStr = window.WorkoutModels.formatDateKey(new Date());
+    const defaultName = `workout-backup-${todayStr}.json`;
+
+    if (isFileSystemAccessSupported()) {
+      const backupHandle = await window.showSaveFilePicker({
+        suggestedName: defaultName,
+        types: [
+          {
+            description: '오늘운동 백업 파일 (JSON)',
+            accept: { 'application/json': ['.json'] },
+          },
+        ],
+      });
+      const writable = await backupHandle.createWritable();
+      const payload = JSON.stringify(exportBackupData(), null, 2);
+      await writable.write(payload);
+      await writable.close();
+      return backupHandle.name;
+    }
+
+    // 모바일 및 일반 브라우저: 저장할 파일 이름을 직접 입력받아 다운로드
+    const inputName = window.prompt(
+      '백업 저장할 파일 이름을 입력해 주세요:',
+      defaultName
+    );
+    if (inputName === null) {
+      const abortErr = new Error('취소됨');
+      abortErr.name = 'AbortError';
+      throw abortErr;
+    }
+    let cleanName = inputName.trim() || defaultName;
+    if (!cleanName.toLowerCase().endsWith('.json')) {
+      cleanName += '.json';
+    }
+
+    const payload = JSON.stringify(exportBackupData(), null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = cleanName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return cleanName;
+  }
+
   return {
     getAllLogs,
     getLogsByDate,
@@ -840,7 +892,7 @@ window.WorkoutRepository = (function () {
     importBackupData,
     clearAllData,
     seedSampleData,
-    // 로컬 파일 실시간 자동 동기화 API
+    // 로컬 파일 실시간 자동 동기화 및 백업 API
     isFileSystemAccessSupported,
     initSavedFileHandle,
     onFileSyncChange,
@@ -849,5 +901,6 @@ window.WorkoutRepository = (function () {
     openExistingSyncFile,
     reconnectRememberedFile,
     disconnectSyncFile,
+    saveBackupCopyAs,
   };
 })();
