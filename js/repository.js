@@ -477,6 +477,7 @@ window.WorkoutRepository = (function () {
   const IDB_NAME = 'workout_file_sync_db_v1';
   const IDB_STORE = 'handles';
   const IDB_KEY = 'active_workout_file';
+  const MOBILE_AUTO_FILE_KEY = 'workout_mobile_auto_file_v1';
 
   let activeFileHandle = null;
   let syncStatus = 'disconnected'; // 'disconnected' | 'needs_permission' | 'connected'
@@ -489,6 +490,29 @@ window.WorkoutRepository = (function () {
       typeof window.showSaveFilePicker === 'function' &&
       typeof window.showOpenFilePicker === 'function'
     );
+  }
+
+  function triggerBrowserFileDownload(fileName = 'workout-data.json') {
+    try {
+      const payload = JSON.stringify(exportBackupData(), null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      const now = new Date();
+      lastSavedTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
+        now.getMinutes()
+      ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      notifySyncListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   function onFileSyncChange(listener) {
@@ -507,10 +531,17 @@ window.WorkoutRepository = (function () {
   }
 
   function getFileSyncStatus() {
+    const supported = isFileSystemAccessSupported();
+    const isMobileConnected =
+      !supported && localStorage.getItem(MOBILE_AUTO_FILE_KEY) === '1';
     return {
-      supported: isFileSystemAccessSupported(),
-      status: syncStatus,
-      fileName: activeFileHandle ? activeFileHandle.name : '',
+      supported,
+      status: supported ? syncStatus : isMobileConnected ? 'connected' : 'disconnected',
+      fileName: activeFileHandle
+        ? activeFileHandle.name
+        : isMobileConnected
+        ? 'workout-data.json (내 파일)'
+        : '',
       lastSavedAt: lastSavedTimeStr,
     };
   }
@@ -579,6 +610,12 @@ window.WorkoutRepository = (function () {
    * 앱 시작 시 이전에 연결했던 파일 핸들이 있는지 확인
    */
   async function initSavedFileHandle() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {});
+      }
+    } catch (e) {}
+
     if (!isFileSystemAccessSupported()) {
       notifySyncListeners();
       return;
@@ -628,9 +665,18 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 데이터 변경 시 디바운스로 로컬 파일에 자동 덮어쓰기
+   * 데이터 변경 시 디바운스로 로컬 파일에 자동 덮어쓰기 (모바일은 자동 파일 다운로드)
    */
   function scheduleAutoFileSave() {
+    if (!isFileSystemAccessSupported()) {
+      if (localStorage.getItem(MOBILE_AUTO_FILE_KEY) === '1') {
+        if (autoSaveTimer) clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+          triggerBrowserFileDownload('workout-data.json');
+        }, 300);
+      }
+      return;
+    }
     if (!activeFileHandle || syncStatus !== 'connected') return;
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => {
@@ -639,11 +685,14 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 1. 새 저장 파일을 내 컴퓨터에 만들고 실시간 자동 저장 연결
+   * 1. 새 저장 파일을 내 기기에 만들고 자동 저장 연결 (PC + 모바일 모두 지원)
    */
   async function connectNewSyncFile() {
     if (!isFileSystemAccessSupported()) {
-      throw new Error('현재 브라우저는 직접 파일 연결을 지원하지 않습니다. 크롬/엣지를 이용해 주세요.');
+      localStorage.setItem(MOBILE_AUTO_FILE_KEY, '1');
+      triggerBrowserFileDownload('workout-data.json');
+      notifySyncListeners();
+      return 'workout-data.json';
     }
     const handle = await window.showSaveFilePicker({
       suggestedName: 'workout-data.json',
@@ -663,11 +712,42 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 2. 내 컴퓨터에 있던 기존 데이터 파일을 열어서 복원 + 실시간 자동 저장 연결
+   * 2. 내 기기에 있던 기존 데이터 파일을 열어서 복원 + 자동 저장 연결 (PC + 모바일 모두 지원)
    */
   async function openExistingSyncFile() {
     if (!isFileSystemAccessSupported()) {
-      throw new Error('현재 브라우저는 직접 파일 연결을 지원하지 않습니다. 크롬/엣지를 이용해 주세요.');
+      return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.addEventListener('change', () => {
+          const file = input.files && input.files[0];
+          document.body.removeChild(input);
+          if (!file) {
+            resolve(null);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const parsed = JSON.parse(ev.target.result);
+              localStorage.setItem(MOBILE_AUTO_FILE_KEY, '1');
+              const count = importBackupData(parsed);
+              notifySyncListeners();
+              resolve({ fileName: file.name || 'workout-data.json', count });
+            } catch (err) {
+              reject(new Error('파일 형식이 올바르지 않습니다.'));
+            }
+          };
+          reader.onerror = () => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
+          reader.readAsText(file);
+        });
+
+        input.click();
+      });
     }
     const [handle] = await window.showOpenFilePicker({
       multiple: false,
@@ -734,6 +814,7 @@ window.WorkoutRepository = (function () {
     activeFileHandle = null;
     syncStatus = 'disconnected';
     lastSavedTimeStr = '';
+    localStorage.removeItem(MOBILE_AUTO_FILE_KEY);
     await removeHandleFromIDB();
     notifySyncListeners();
   }

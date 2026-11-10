@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261110_6" />
   </head>
   <body>
     <div class="app-shell">
@@ -50,7 +50,16 @@
       <!-- 메인 콘텐츠 -->
       <main class="app-content">
         <!-- 로컬 파일 실시간 자동저장 상태 바 -->
-        <div id="file-sync-bar" class="file-sync-bar"></div>
+        <div id="file-sync-bar" class="file-sync-bar">
+          <div class="sync-info-group">
+            <span class="sync-dot"></span>
+            <span>💾 내 기기 파일에 자동저장 연결 (캐시 삭제 안심)</span>
+          </div>
+          <div class="sync-btn-group">
+            <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
+            <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
+          </div>
+        </div>
 
         <!-- ==================== 탭 1: 운동 기록하기 ==================== -->
         <section id="tab-log" class="tab-panel active">
@@ -259,10 +268,10 @@
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js"></script>
-    <script src="./js/models.js"></script>
-    <script src="./js/repository.js"></script>
-    <script src="./js/stats.js"></script>
-    <script src="./js/app.js"></script>
+    <script src="./js/icons.js?v=20261110_6"></script>
+    <script src="./js/models.js?v=20261110_6"></script>
+    <script src="./js/repository.js?v=20261110_6"></script>
+    <script src="./js/stats.js?v=20261110_6"></script>
+    <script src="./js/app.js?v=20261110_6"></script>
   </body>
 </html>

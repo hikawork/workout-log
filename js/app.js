@@ -238,7 +238,7 @@
   }
 
   /**
-   * 상단 로컬 파일 실시간 자동저장 상태 바 렌더링
+   * 상단 로컬 파일 실시간 자동저장 상태 바 렌더링 (PC + 모바일 통합 지원)
    */
   function renderFileSyncBar() {
     const bar = document.getElementById('file-sync-bar');
@@ -246,20 +246,6 @@
 
     const info = Repo.getFileSyncStatus();
     bar.classList.remove('connected', 'needs-perm');
-
-    if (!info.supported) {
-      bar.innerHTML = `
-        <div class="sync-info-group">
-          <span class="sync-dot"></span>
-          <span>💾 파일 보관 (수동 다운로드/불러오기)</span>
-        </div>
-        <div class="sync-btn-group">
-          <button type="button" class="sync-action-btn primary" data-sync-act="manual-export">파일로 저장</button>
-          <button type="button" class="sync-action-btn" data-sync-act="manual-import">파일 열기</button>
-        </div>
-      `;
-      return;
-    }
 
     if (info.status === 'connected') {
       bar.classList.add('connected');
@@ -270,7 +256,7 @@
           <span>파일 자동저장 켜짐 · <strong>${escapeHtml(info.fileName)}</strong>${savedText}</span>
         </div>
         <div class="sync-btn-group">
-          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="다른 데이터 파일 열기">파일 변경</button>
+          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="저장된 파일 불러오기">📂 파일 열기</button>
           <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 해제">해제</button>
         </div>
       `;
@@ -292,11 +278,11 @@
       return;
     }
 
-    // 기본: disconnected
+    // 기본: disconnected (PC 및 모바일 모두 동일한 '+ 새 파일 연결' / '📂 기존 파일 열기' 제공)
     bar.innerHTML = `
       <div class="sync-info-group">
         <span class="sync-dot"></span>
-        <span>💾 내 컴퓨터 파일에 실시간 자동저장 연결 (캐시 삭제 안심)</span>
+        <span>💾 내 기기 파일에 자동저장 연결 (캐시 삭제 안심)</span>
       </div>
       <div class="sync-btn-group">
         <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
