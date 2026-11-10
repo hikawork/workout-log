@@ -361,7 +361,7 @@ body {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 280px;
+  width: min(312px, calc(100vw - 24px));
   background: var(--bg-card-solid);
   border: 1px solid var(--border-highlight);
   border-radius: var(--radius-lg);
@@ -371,6 +371,7 @@ body {
   display: none;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
   animation: slideUpFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -391,15 +392,19 @@ body {
 
 .theme-picker-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
 }
 
 .theme-option-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px 9px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   background: var(--bg-subtle);
@@ -407,6 +412,7 @@ body {
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
@@ -422,8 +428,8 @@ body {
 }
 
 .theme-swatch-dot {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 8px;
   flex-shrink: 0;
   display: flex;
@@ -436,13 +442,18 @@ body {
 .theme-opt-texts {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .theme-opt-name {
   font-size: 12px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .theme-opt-desc {
