@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0d121f" />
+    <title>오늘운동 · FIT LOG</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link
+      rel="alternate icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23a3e635'/%3E%3Cstop offset='100%25' stop-color='%2310b981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='60' height='60' rx='16' fill='url(%23g)'/%3E%3Cpolygon points='35 11 16 35 31 35 28 53 48 29 33 29 35 11' fill='%23090d16' stroke='%23090d16' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="apple-touch-icon" href="./favicon.svg" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- 상단 헤더 -->
+      <header class="app-header">
+        <div class="brand-group">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">오늘운동 <span style="font-size: 11px; color: var(--primary); font-weight: 900">FIT</span></div>
+            <div class="brand-subtitle">DAILY WORKOUT TRACKER</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div id="streak-badge" class="streak-badge">START TODAY</div>
+          <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="다크/라이트 테마 전환">
+            <svg id="theme-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 메인 콘텐츠 -->
+      <main class="app-content">
+        <!-- ==================== 탭 1: 운동 기록하기 ==================== -->
+        <section id="tab-log" class="tab-panel active">
+          <!-- 날짜 선택 네비게이터 -->
+          <div class="card date-nav-card">
+            <button type="button" id="prev-day-btn" class="date-step-btn" title="이전 날짜">‹</button>
+            <div class="date-center-group">
+              <div class="date-label-row">
+                <label for="date-picker-input" id="current-date-text" class="current-date-text"></label>
+                <button type="button" id="go-today-btn" class="today-pill-btn">TODAY</button>
+              </div>
+              <input type="date" id="date-picker-input" class="date-picker-input" />
+            </div>
+            <button type="button" id="next-day-btn" class="date-step-btn" title="다음 날짜">›</button>
+          </div>
+
+          <!-- 운동 선택 및 빠른 입력 카드 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">STEP 1</span>
+                <span>운동 종목 선택</span>
+              </div>
+              <button type="button" id="toggle-ex-manage-btn" class="ex-manage-toggle-btn">
+                ⚙️ 종목 편집
+              </button>
+            </div>
+
+            <!-- 운동 종목 그리드 -->
+            <div id="exercise-grid" class="exercise-grid"></div>
+
+            <!-- 선택된 운동에 따른 동적 입력 영역 (시간 vs 횟수x세트) -->
+            <div id="dynamic-input-section" class="input-section"></div>
+          </div>
+
+          <!-- 선택한 날짜의 기록 목록 카드 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">DONE</span>
+                <span>이 날 완료한 운동</span>
+              </div>
+              <span id="daily-count-badge" style="font-size: 13px; font-weight: 900; color: var(--primary)">0건</span>
+            </div>
+
+            <div id="daily-summary-strip" class="daily-summary-strip"></div>
+            <div id="daily-log-list" class="log-list"></div>
+          </div>
+        </section>
+
+        <!-- ==================== 탭 2: 일별 달력 ==================== -->
+        <section id="tab-calendar" class="tab-panel">
+          <div class="card">
+            <div class="calendar-header-nav">
+              <button type="button" id="cal-prev-month" class="date-step-btn">‹</button>
+              <div id="cal-month-title" class="calendar-month-title"></div>
+              <button type="button" id="cal-next-month" class="date-step-btn">›</button>
+            </div>
+
+            <div class="calendar-weekdays">
+              <span style="color: #fb7185">SUN</span>
+              <span>MON</span>
+              <span>TUE</span>
+              <span>WED</span>
+              <span>THU</span>
+              <span>FRI</span>
+              <span style="color: #38bdf8">SAT</span>
+            </div>
+
+            <div id="calendar-grid" class="calendar-grid"></div>
+          </div>
+
+          <!-- 달력에서 선택한 날짜의 상세 내역 -->
+          <div class="card">
+            <div class="card-header">
+              <div id="cal-selected-date-title" class="card-title"></div>
+              <button type="button" id="cal-jump-to-log-btn" class="today-pill-btn">
+                + 운동 추가 / 수정
+              </button>
+            </div>
+            <div id="cal-selected-log-list" class="log-list"></div>
+          </div>
+        </section>
+
+        <!-- ==================== 탭 3: 통계 대시보드 ==================== -->
+        <section id="tab-stats" class="tab-panel">
+          <!-- 기간 선택 필터 -->
+          <div class="period-tabs">
+            <button type="button" class="period-tab-btn" data-period="week">이번 주</button>
+            <button type="button" class="period-tab-btn active" data-period="month">이번 달</button>
+            <button type="button" class="period-tab-btn" data-period="days30">최근 30일</button>
+            <button type="button" class="period-tab-btn" data-period="all">전체</button>
+          </div>
+
+          <!-- 핵심 요약 KPI 4종 -->
+          <div id="stats-kpi-grid" class="kpi-grid"></div>
+
+          <!-- 기간별 운동 추이 그래프 -->
+          <div class="card">
+            <div class="card-header">
+              <div id="stats-trend-title" class="card-title">기간별 운동량 추이</div>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700">분 / 세트 볼륨</span>
+            </div>
+            <div id="stats-trend-chart" class="trend-chart"></div>
+          </div>
+
+          <!-- 종목별 누적 통계 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">RANK</span>
+                <span>종목별 상세 통계</span>
+              </div>
+            </div>
+            <div id="stats-exercise-breakdown" class="stat-ex-list"></div>
+          </div>
+
+          <!-- 데이터 관리 및 테스트용 샘플 데이터 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">데이터 & 백업 관리</div>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px">
+              브라우저 로컬 저장소에 자동 저장됩니다. 샘플 데이터로 통계를 체험하거나 JSON 파일로 백업할 수 있습니다.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <button type="button" id="seed-sample-btn" class="preset-btn" style="font-weight: 800; color: var(--primary); border-color: var(--border-highlight)">
+                + 최근 2주 샘플 기록 채우기
+              </button>
+              <button type="button" id="export-json-btn" class="preset-btn">백업 파일 저장(JSON)</button>
+              <label class="preset-btn" style="cursor: pointer">
+                백업 불러오기
+                <input type="file" id="import-json-input" accept=".json" style="display: none" />
+              </label>
+              <button type="button" id="clear-data-btn" class="preset-btn" style="color: var(--danger)">
+                전체 초기화
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- 플로팅 아일랜드 하단 네비게이션 도크 -->
+      <nav class="bottom-nav">
+        <button type="button" class="nav-item active" data-tab="log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <span class="nav-label">운동 기록</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="3" ry="3"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="nav-label">일별 달력</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="stats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span class="nav-label">운동 통계</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- 커스텀 운동 종목 추가 모달 -->
+    <div id="custom-ex-modal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="card-title">나만의 운동 종목 추가</div>
+        <div class="field-group">
+          <label class="field-label" for="custom-ex-name">운동 이름</label>
+          <input type="text" id="custom-ex-name" class="text-input" placeholder="예: 벤치프레스, 천국의 계단, 수영" maxlength="20" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">벡터 아이콘 선택</label>
+          <div id="custom-icon-picker" class="icon-picker-grid"></div>
+          <input type="hidden" id="custom-ex-icon" value="custom_flame" />
+        </div>
+        <div class="field-group">
+          <span class="field-label">기록 방식 선택</span>
+          <div style="display: flex; gap: 12px; font-size: 13px; font-weight: 700">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer">
+              <input type="radio" name="custom-ex-type" value="sets" checked />
+              횟수 × 세트 (근력/맨몸)
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer">
+              <input type="radio" name="custom-ex-type" value="time" />
+              운동 시간(분) (유산소)
+            </label>
+          </div>
+        </div>
+        <div class="submit-btn-row">
+          <button type="button" id="close-custom-ex-modal" class="secondary-btn">취소</button>
+          <button type="button" id="save-custom-ex-btn" class="primary-btn">추가하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div id="toast-msg" class="toast"></div>
+
+    <!-- 모듈 스크립트 로드 -->
+    <script src="./js/icons.js"></script>
+    <script src="./js/models.js"></script>
+    <script src="./js/repository.js"></script>
+    <script src="./js/stats.js"></script>
+    <script src="./js/app.js"></script>
+  </body>
+</html>

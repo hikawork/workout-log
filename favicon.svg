@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3e635" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <!-- 둥근 앱 아이콘 배경 -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bgGrad)" />
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#shine)" />
+  <!-- 번개 + 덤벨 피트니스 심볼 -->
+  <polygon
+    points="35 11 16 35 31 35 28 53 48 29 33 29 35 11"
+    fill="#090d16"
+    stroke="#090d16"
+    stroke-width="2.5"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -1,0 +1,17 @@
+{
+  "name": "오늘운동 · FIT LOG",
+  "short_name": "오늘운동",
+  "description": "하루 운동을 3초 만에 간단히 기록하고 일별 달력과 통계를 확인하는 앱",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d121f",
+  "theme_color": "#0d121f",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
