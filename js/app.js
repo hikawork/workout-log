@@ -31,6 +31,7 @@
     statsPeriod: 'month', // 'week' | 'month' | 'days30' | 'all'
     customIconKey: 'custom_flame',
     isManagingExercises: false,
+    editingExerciseId: null,
   };
 
   /**
@@ -95,6 +96,51 @@
       `
       )
       .join('');
+  }
+
+  /**
+   * 운동 종목 추가 / 수정 모달 열기
+   */
+  function openExerciseModal(targetEx = null) {
+    const modal = document.getElementById('custom-ex-modal');
+    const titleEl = document.getElementById('custom-ex-modal-title');
+    const saveBtn = document.getElementById('save-custom-ex-btn');
+    const nameEl = document.getElementById('custom-ex-name');
+    const iconHiddenEl = document.getElementById('custom-ex-icon');
+    const selectableKeys = Icons.getCustomSelectableIcons().map((o) => o.key);
+
+    if (targetEx) {
+      state.editingExerciseId = targetEx.id;
+      if (titleEl) titleEl.textContent = '운동 종목 설정 수정';
+      if (saveBtn) saveBtn.textContent = '수정 저장';
+      if (nameEl) nameEl.value = targetEx.name || '';
+
+      const initialIcon = selectableKeys.includes(targetEx.icon)
+        ? targetEx.icon
+        : selectableKeys.includes(targetEx.id)
+        ? targetEx.id
+        : 'custom_flame';
+      state.customIconKey = initialIcon;
+      if (iconHiddenEl) iconHiddenEl.value = initialIcon;
+
+      const radio = document.querySelector(
+        `input[name="custom-ex-type"][value="${targetEx.recordType}"]`
+      );
+      if (radio) radio.checked = true;
+    } else {
+      state.editingExerciseId = null;
+      if (titleEl) titleEl.textContent = '나만의 운동 종목 추가';
+      if (saveBtn) saveBtn.textContent = '추가하기';
+      if (nameEl) nameEl.value = '';
+      state.customIconKey = 'custom_flame';
+      if (iconHiddenEl) iconHiddenEl.value = 'custom_flame';
+
+      const defaultRadio = document.querySelector('input[name="custom-ex-type"][value="sets"]');
+      if (defaultRadio) defaultRadio.checked = true;
+    }
+
+    renderCustomIconPicker();
+    modal?.classList.add('open');
   }
 
   /**
@@ -245,15 +291,24 @@
         const isSelected = ex.id === state.selectedExerciseId;
         const isRecorded = recordedExerciseIds.has(ex.id);
         const typeLabel = ex.recordType === Models.RECORD_TYPES.TIME ? 'TIME · 분' : 'SETS · 회';
-        const recordedBadge = isRecorded ? `<span class="recorded-dot-badge">DONE</span>` : '';
+        const recordedBadge =
+          !state.isManagingExercises && isRecorded
+            ? `<span class="recorded-dot-badge">DONE</span>`
+            : '';
+        const editBtn = state.isManagingExercises
+          ? `<button type="button" class="edit-custom-ex-btn" data-edit-ex="${ex.id}" title="${escapeHtml(ex.name)} 종목 수정">✎</button>`
+          : '';
         const deleteBtn = state.isManagingExercises
           ? `<button type="button" class="delete-custom-ex-btn" data-delete-ex="${ex.id}" title="${escapeHtml(ex.name)} 종목 삭제">✕</button>`
           : '';
         return `
           <div class="exercise-chip ${isSelected ? 'selected' : ''} ${
           isRecorded ? 'recorded' : ''
-        }" draggable="true" data-ex-id="${ex.id}" title="끌어서 순서 변경">
+        }" draggable="true" data-ex-id="${ex.id}" title="${
+          state.isManagingExercises ? '클릭하여 종목 수정 / 끌어서 순서 변경' : '끌어서 순서 변경'
+        }">
             ${recordedBadge}
+            ${editBtn}
             ${deleteBtn}
             ${Icons.renderExerciseBadge(ex.id, ex.icon, 'md')}
             <span class="ex-name">${escapeHtml(ex.name)}</span>
@@ -1015,12 +1070,23 @@
       state.isManagingExercises = !state.isManagingExercises;
       renderExerciseGrid();
       if (state.isManagingExercises) {
-        showToast('종목 편집 모드: ✕ 버튼으로 삭제하거나 끌어서 순서를 바꿀 수 있습니다.');
+        showToast('종목 편집 모드: 카드를 눌러 설정을 수정하거나 ✕로 삭제할 수 있습니다.');
       }
     });
 
-    // 운동 종목 선택 & 종목 삭제(기본/커스텀 모두 지원) 및 복원 이벤트 위임
+    // 운동 종목 선택 & 종목 수정/삭제(기본/커스텀 모두 지원) 및 복원 이벤트 위임
     document.getElementById('exercise-grid')?.addEventListener('click', (e) => {
+      const editBtn = e.target.closest('[data-edit-ex]');
+      if (editBtn) {
+        e.stopPropagation();
+        const exId = editBtn.dataset.editEx;
+        const targetEx = Repo.getAllExercises().find((item) => item.id === exId);
+        if (targetEx) {
+          openExerciseModal(targetEx);
+        }
+        return;
+      }
+
       const deleteBtn = e.target.closest('[data-delete-ex]');
       if (deleteBtn) {
         e.stopPropagation();
@@ -1049,19 +1115,26 @@
       const restoreBtn = e.target.closest('#restore-default-ex-btn');
       if (restoreBtn) {
         Repo.restoreDefaultExercises();
-        showToast('삭제했던 기본 운동 종목이 모두 복원되었습니다.');
+        showToast('삭제/수정했던 기본 운동 종목이 모두 초기 상태로 복원되었습니다.');
         renderAll();
         return;
       }
 
       const openModalBtn = e.target.closest('#open-custom-ex-modal-btn');
       if (openModalBtn) {
-        document.getElementById('custom-ex-modal')?.classList.add('open');
+        openExerciseModal(null);
         return;
       }
 
       const chip = e.target.closest('[data-ex-id]');
       if (chip) {
+        if (state.isManagingExercises) {
+          const targetEx = Repo.getAllExercises().find((item) => item.id === chip.dataset.exId);
+          if (targetEx) {
+            openExerciseModal(targetEx);
+          }
+          return;
+        }
         syncFormFromDOM();
         selectExerciseForDate(chip.dataset.exId);
         renderExerciseGrid();
@@ -1291,17 +1364,30 @@
         return;
       }
 
-      const newEx = Repo.addCustomExercise({
+      const payload = {
         name,
         icon: iconEl?.value || 'custom_flame',
         recordType: typeEl?.value || Models.RECORD_TYPES.SETS,
-      });
+      };
 
-      if (nameEl) nameEl.value = '';
-      document.getElementById('custom-ex-modal')?.classList.remove('open');
-      selectExerciseForDate(newEx.id);
-      showToast(`'${newEx.name}' 종목이 추가되었습니다!`);
-      renderAll();
+      if (state.editingExerciseId) {
+        const updatedEx = Repo.updateExercise(state.editingExerciseId, payload);
+        state.editingExerciseId = null;
+        if (nameEl) nameEl.value = '';
+        document.getElementById('custom-ex-modal')?.classList.remove('open');
+        if (updatedEx) {
+          selectExerciseForDate(updatedEx.id);
+        }
+        showToast(`'${name}' 종목 설정이 수정되었습니다!`);
+        renderAll();
+      } else {
+        const newEx = Repo.addCustomExercise(payload);
+        if (nameEl) nameEl.value = '';
+        document.getElementById('custom-ex-modal')?.classList.remove('open');
+        selectExerciseForDate(newEx.id);
+        showToast(`'${newEx.name}' 종목이 추가되었습니다!`);
+        renderAll();
+      }
     });
   }
 

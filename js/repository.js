@@ -11,6 +11,7 @@ window.WorkoutRepository = (function () {
     CUSTOM_EXERCISES: 'workout_app_custom_exercises_v1',
     DELETED_DEFAULT_EXERCISES: 'workout_app_deleted_defaults_v1',
     EXERCISE_ORDER: 'workout_app_exercise_order_v1',
+    EXERCISE_OVERRIDES: 'workout_app_exercise_overrides_v1',
   };
 
   /**
@@ -160,11 +161,28 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 기본 운동 종목(삭제되지 않은 항목) + 사용자 커스텀 운동 종목 합쳐서 사용자 지정 순서대로 조회
+   * 기본 운동 종목에 대한 사용자 수정(이름/아이콘/기록타입) 오버라이드 조회
+   */
+  function getExerciseOverrides() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.EXERCISE_OVERRIDES);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /**
+   * 기본 운동 종목(삭제되지 않은 항목 + 수정 오버라이드 반영) + 사용자 커스텀 운동 종목 합쳐서 조회
    */
   function getAllExercises() {
     const deletedSet = new Set(getDeletedDefaultIds());
-    const defaults = window.WorkoutModels.DEFAULT_EXERCISES.filter((ex) => !deletedSet.has(ex.id));
+    const overrides = getExerciseOverrides();
+    const defaults = window.WorkoutModels.DEFAULT_EXERCISES.filter((ex) => !deletedSet.has(ex.id)).map(
+      (ex) => (overrides[ex.id] ? { ...ex, ...overrides[ex.id] } : ex)
+    );
     const customs = getCustomExercises();
     const combined = [...defaults, ...customs];
 
@@ -223,6 +241,58 @@ window.WorkoutRepository = (function () {
   }
 
   /**
+   * 운동 종목 정보 수정 (이름, 아이콘, 기록 방식 변경 - 커스텀 및 기본 종목 모두 지원)
+   */
+  function updateExercise(exerciseId, params) {
+    const name = (params.name || '').trim();
+    const icon = params.icon || 'custom_flame';
+    const recordType = params.recordType || window.WorkoutModels.RECORD_TYPES.SETS;
+    const hasDistance = recordType === window.WorkoutModels.RECORD_TYPES.TIME;
+    const hasWeight = recordType === window.WorkoutModels.RECORD_TYPES.SETS;
+
+    const customs = getCustomExercises();
+    const customIdx = customs.findIndex((ex) => ex.id === exerciseId);
+
+    if (customIdx !== -1) {
+      customs[customIdx] = {
+        ...customs[customIdx],
+        name: name || customs[customIdx].name,
+        icon,
+        recordType,
+        hasDistance,
+        hasWeight,
+      };
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(customs));
+    } else {
+      const overrides = getExerciseOverrides();
+      overrides[exerciseId] = {
+        name,
+        icon,
+        recordType,
+        hasDistance,
+        hasWeight,
+      };
+      localStorage.setItem(STORAGE_KEYS.EXERCISE_OVERRIDES, JSON.stringify(overrides));
+    }
+
+    // 기존 운동 기록들 중 해당 종목의 이름/아이콘도 함께 동기화
+    const logs = getAllLogs();
+    let logsModified = false;
+    logs.forEach((log) => {
+      if (log.exerciseId === exerciseId) {
+        if (name) log.exerciseName = name;
+        log.exerciseIcon = icon;
+        logsModified = true;
+      }
+    });
+    if (logsModified) {
+      saveAllLogs(logs);
+    }
+
+    return getAllExercises().find((ex) => ex.id === exerciseId);
+  }
+
+  /**
    * 운동 종목 삭제 (기본 종목 & 커스텀 종목 모두 삭제 가능)
    */
   function deleteExercise(exerciseId) {
@@ -244,6 +314,7 @@ window.WorkoutRepository = (function () {
    */
   function restoreDefaultExercises() {
     localStorage.removeItem(STORAGE_KEYS.DELETED_DEFAULT_EXERCISES);
+    localStorage.removeItem(STORAGE_KEYS.EXERCISE_OVERRIDES);
   }
 
   /**
@@ -398,6 +469,7 @@ window.WorkoutRepository = (function () {
     getDeletedDefaultIds,
     saveExerciseOrder,
     addCustomExercise,
+    updateExercise,
     deleteExercise,
     deleteCustomExercise: deleteExercise,
     restoreDefaultExercises,

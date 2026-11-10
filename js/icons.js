@@ -143,11 +143,11 @@ window.WorkoutIcons = (function () {
    * 운동 ID 또는 아이콘 키에 맞는 메타(그라데이션, SVG) 반환
    */
   function getExerciseVisual(exerciseId, fallbackIconKey = 'custom_flame') {
+    if (fallbackIconKey && EXERCISE_SVGS[fallbackIconKey]) {
+      return EXERCISE_SVGS[fallbackIconKey];
+    }
     if (EXERCISE_SVGS[exerciseId]) {
       return EXERCISE_SVGS[exerciseId];
-    }
-    if (EXERCISE_SVGS[fallbackIconKey]) {
-      return EXERCISE_SVGS[fallbackIconKey];
     }
     return EXERCISE_SVGS.custom_flame;
   }
@@ -173,16 +173,22 @@ window.WorkoutIcons = (function () {
   }
 
   /**
-   * 커스텀 운동 모달에서 선택 가능한 벡터 아이콘 목록
+   * 종목 추가/수정 모달에서 선택 가능한 벡터 아이콘 목록 (12종)
    */
   function getCustomSelectableIcons() {
     return [
       { key: 'custom_flame', label: '버닝' },
       { key: 'custom_bolt', label: '파워' },
-      { key: 'custom_swim', label: '워터' },
-      { key: 'custom_heart', label: '카디오' },
-      { key: 'weight_training', label: '덤벨' },
-      { key: 'running', label: '스프린트' },
+      { key: 'custom_swim', label: '수영' },
+      { key: 'custom_heart', label: '유산소' },
+      { key: 'running', label: '달리기' },
+      { key: 'squat', label: '스쿼트' },
+      { key: 'cycling', label: '자전거' },
+      { key: 'weight_training', label: '웨이트' },
+      { key: 'pushup', label: '푸시업' },
+      { key: 'walking', label: '산책' },
+      { key: 'pullup', label: '턱걸이' },
+      { key: 'plank', label: '코어' },
     ];
   }
 
