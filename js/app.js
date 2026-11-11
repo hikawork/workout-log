@@ -508,7 +508,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" id="input-minutes" class="number-input" min="0" max="600" value="${state.form.minutes}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-minutes" class="number-input" min="0" max="600" value="${state.form.minutes}" />
                 <span class="unit-suffix">분</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="1">+</button>
@@ -528,7 +528,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="-10">-10</button>
               <div class="number-input-wrap">
-                <input type="number" id="input-seconds" class="number-input" min="0" max="59" value="${state.form.seconds}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-seconds" class="number-input" min="0" max="59" value="${state.form.seconds}" />
                 <span class="unit-suffix">초</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="10">+10</button>
@@ -556,7 +556,7 @@
               <span>이동 거리 (선택사항)</span>
             </div>
             <div class="number-input-wrap">
-              <input type="number" id="input-distance" class="number-input" step="0.1" min="0" placeholder="0.0" value="${state.form.distanceKm}" />
+              <input type="number" inputmode="decimal" id="input-distance" class="number-input" step="0.1" min="0" placeholder="0.0" value="${state.form.distanceKm}" />
               <span class="unit-suffix">KM</span>
             </div>
           </div>
@@ -573,7 +573,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" id="input-reps" class="number-input" min="1" max="500" value="${state.form.reps}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-reps" class="number-input" min="1" max="500" value="${state.form.reps}" />
                 <span class="unit-suffix">회</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="1">+</button>
@@ -593,7 +593,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" id="input-sets" class="number-input" min="1" max="50" value="${state.form.sets}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-sets" class="number-input" min="1" max="50" value="${state.form.sets}" />
                 <span class="unit-suffix">SET</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="1">+</button>
@@ -621,7 +621,7 @@
               <span>중량 추가 (선택사항 · 맨몸이면 비워두세요)</span>
             </div>
             <div class="number-input-wrap">
-              <input type="number" id="input-weight" class="number-input" step="0.5" min="0" placeholder="0" value="${state.form.weightKg}" />
+              <input type="number" inputmode="decimal" id="input-weight" class="number-input" step="0.5" min="0" placeholder="0" value="${state.form.weightKg}" />
               <span class="unit-suffix">KG</span>
             </div>
           </div>
