@@ -383,7 +383,7 @@
     const streak = Stats.calculateStreak(allLogs);
     const badge = document.getElementById('streak-badge');
     if (badge) {
-      badge.innerHTML = streak > 0 ? `⚡ ${streak}일 연속 달성` : `⚡ READY TO WORKOUT`;
+      badge.innerHTML = streak > 0 ? `⚡ ${streak}일 연속 달성` : `⚡ READY`;
     }
   }
 
