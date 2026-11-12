@@ -308,37 +308,9 @@ window.WorkoutStats = (function () {
   }
 
   /**
-   * 5대 운동 카테고리별 성취도(0~100%) 레이더 차트 데이터 계산 (기간별 기본 자동 목표 기준)
+   * 5대 운동 카테고리별 성취도(0~100%) 레이더 차트 데이터 계산 (기간별 기본 자동 기준)
    */
   function computeCategoryBalance(logs, allExercises = [], period = 'month') {
-    let targetPoints = 240;
-    let goalLabel = '카테고리별 240분 / 48세트 기준';
-
-    if (period === 'week') {
-      targetPoints = 60;
-      goalLabel = '주간 기준: 60분 또는 12세트 = 100%';
-    } else if (period === 'month') {
-      targetPoints = 240;
-      goalLabel = '월간 기준: 240분 또는 48세트 = 100%';
-    } else if (period === 'days30') {
-      targetPoints = 240;
-      goalLabel = '30일 기준: 240분 또는 48세트 = 100%';
-    } else {
-      // 전체 기간: 가장 오래된 기록부터 오늘까지의 주 수에 비례 (최소 1주 ~ 최대 12주)
-      let weeks = 4;
-      if (logs.length > 0) {
-        const sortedDates = logs.map((l) => l.date).sort();
-        const oldest = new Date(sortedDates[0]);
-        const now = new Date();
-        const diffDays = Math.max(7, Math.round((now - oldest) / 86400000));
-        weeks = Math.min(12, Math.max(1, Math.ceil(diffDays / 7)));
-      }
-      targetPoints = weeks * 60;
-      goalLabel = `누적 기준(${weeks}주): ${targetPoints}분 또는 ${Math.round(
-        targetPoints / 5
-      )}세트 = 100%`;
-    }
-
     const categoryMap = {};
     EXERCISE_CATEGORIES.forEach((cat) => {
       categoryMap[cat.key] = {
@@ -370,10 +342,30 @@ window.WorkoutStats = (function () {
       }
     });
 
+    let targetPoints = 240;
+    let goalLabel = '월간 기준: 240분 또는 48세트 = 100%';
+
+    if (period === 'week') {
+      targetPoints = 60;
+      goalLabel = '주간 기준: 60분 또는 12세트 = 100%';
+    } else if (period === 'month') {
+      targetPoints = 240;
+      goalLabel = '월간 기준: 240분 또는 48세트 = 100%';
+    } else if (period === 'days30') {
+      targetPoints = 240;
+      goalLabel = '30일 기준: 240분 또는 48세트 = 100%';
+    } else {
+      // 전체 기간: 가장 많이 수행한 카테고리(최소 60점 이상)를 100% 기준으로 균형 비교
+      const maxPoints = Math.max(...Object.values(categoryMap).map((c) => c.points));
+      targetPoints = Math.max(60, maxPoints);
+      goalLabel = '전체 기간: 최다 수행 영역(100%) 대비 균형';
+    }
+
     const items = EXERCISE_CATEGORIES.map((cat) => {
       const b = categoryMap[cat.key];
       const rawPercent = Math.round((b.points / Math.max(1, targetPoints)) * 100);
-      const plotPercent = Math.min(100, Math.max(0, rawPercent));
+      const percent = Math.min(100, Math.max(0, rawPercent));
+      const plotPercent = percent;
 
       let metricText = '기록 없음';
       if (b.count > 0) {
@@ -390,14 +382,14 @@ window.WorkoutStats = (function () {
       return {
         ...b,
         targetPoints,
-        percent: rawPercent,
+        percent,
         plotPercent,
         metricText,
       };
     });
 
     const averagePercent = Math.round(
-      items.reduce((acc, cur) => acc + Math.min(100, cur.percent), 0) / items.length
+      items.reduce((acc, cur) => acc + cur.percent, 0) / items.length
     );
 
     return {
