@@ -4,8 +4,15 @@
  */
 
 window.WorkoutStats = (function () {
-  const { RECORD_TYPES, EXERCISE_CATEGORIES, resolveCategoryKey, formatDateKey, formatDuration } =
-    window.WorkoutModels;
+  const {
+    RECORD_TYPES,
+    EXERCISE_CATEGORIES,
+    DEFAULT_BALANCE_CATEGORIES,
+    getCategoryMeta,
+    resolveCategoryKey,
+    formatDateKey,
+    formatDuration,
+  } = window.WorkoutModels;
 
   /**
    * 기간 필터('week' | 'month' | 'days30' | 'all')에 따른 시작일~종료일 계산
@@ -308,11 +315,23 @@ window.WorkoutStats = (function () {
   }
 
   /**
-   * 5대 운동 카테고리별 성취도(0~100%) 레이더 차트 데이터 계산 (기간별 기본 자동 기준)
+   * 사용자가 선택한 운동 카테고리(3~8개)별 성취도(0~100%) 레이더 차트 데이터 계산
    */
-  function computeCategoryBalance(logs, allExercises = [], period = 'month') {
+  function computeCategoryBalance(
+    logs,
+    allExercises = [],
+    period = 'month',
+    selectedCategoryKeys = null
+  ) {
+    const validSet = new Set(EXERCISE_CATEGORIES.map((c) => c.key));
+    const keysToUse =
+      Array.isArray(selectedCategoryKeys) && selectedCategoryKeys.length >= 3
+        ? selectedCategoryKeys.filter((k) => validSet.has(k))
+        : DEFAULT_BALANCE_CATEGORIES;
+
+    const activeCategories = keysToUse.map((k) => getCategoryMeta(k));
     const categoryMap = {};
-    EXERCISE_CATEGORIES.forEach((cat) => {
+    activeCategories.forEach((cat) => {
       categoryMap[cat.key] = {
         key: cat.key,
         label: cat.label,
@@ -328,7 +347,8 @@ window.WorkoutStats = (function () {
 
     logs.forEach((log) => {
       const catKey = resolveCategoryKey(log, allExercises);
-      const bucket = categoryMap[catKey] || categoryMap.strength;
+      const bucket = categoryMap[catKey];
+      if (!bucket) return; // 사용자가 그래프에서 제외한 카테고리는 차트 집계 생략
       bucket.count += 1;
 
       if (log.recordType === RECORD_TYPES.TIME) {
@@ -355,13 +375,13 @@ window.WorkoutStats = (function () {
       targetPoints = 240;
       goalLabel = '30일 기준: 240분 또는 48세트 = 100%';
     } else {
-      // 전체 기간: 가장 많이 수행한 카테고리(최소 60점 이상)를 100% 기준으로 균형 비교
-      const maxPoints = Math.max(...Object.values(categoryMap).map((c) => c.points));
+      // 전체 기간: 선택된 카테고리 중 가장 많이 수행한 영역(최소 60점 이상)을 100% 기준선으로 비교
+      const maxPoints = Math.max(0, ...Object.values(categoryMap).map((c) => c.points));
       targetPoints = Math.max(60, maxPoints);
       goalLabel = '전체 기간: 최다 수행 영역(100%) 대비 균형';
     }
 
-    const items = EXERCISE_CATEGORIES.map((cat) => {
+    const items = activeCategories.map((cat) => {
       const b = categoryMap[cat.key];
       const rawPercent = Math.round((b.points / Math.max(1, targetPoints)) * 100);
       const percent = Math.min(100, Math.max(0, rawPercent));
@@ -389,7 +409,7 @@ window.WorkoutStats = (function () {
     });
 
     const averagePercent = Math.round(
-      items.reduce((acc, cur) => acc + cur.percent, 0) / items.length
+      items.reduce((acc, cur) => acc + cur.percent, 0) / Math.max(1, items.length)
     );
 
     return {

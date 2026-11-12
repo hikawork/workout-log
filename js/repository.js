@@ -12,6 +12,7 @@ window.WorkoutRepository = (function () {
     DELETED_DEFAULT_EXERCISES: 'workout_app_deleted_defaults_v1',
     EXERCISE_ORDER: 'workout_app_exercise_order_v1',
     EXERCISE_OVERRIDES: 'workout_app_exercise_overrides_v1',
+    BALANCE_CATEGORIES: 'workout_app_balance_categories_v1',
   };
 
   /**
@@ -351,6 +352,46 @@ window.WorkoutRepository = (function () {
   }
 
   /**
+   * 사용자가 선택한 밸런스 그래프 카테고리 키 배열 조회 (3~8개)
+   */
+  function getBalanceCategoryKeys() {
+    const {
+      EXERCISE_CATEGORIES,
+      DEFAULT_BALANCE_CATEGORIES,
+      BALANCE_MIN_COUNT,
+      BALANCE_MAX_COUNT,
+    } = window.WorkoutModels;
+    const validSet = new Set(EXERCISE_CATEGORIES.map((c) => c.key));
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.BALANCE_CATEGORIES);
+      if (!raw) return [...DEFAULT_BALANCE_CATEGORIES];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [...DEFAULT_BALANCE_CATEGORIES];
+      const cleaned = parsed.filter((k, idx) => validSet.has(k) && parsed.indexOf(k) === idx);
+      if (cleaned.length < BALANCE_MIN_COUNT) return [...DEFAULT_BALANCE_CATEGORIES];
+      return cleaned.slice(0, BALANCE_MAX_COUNT);
+    } catch (e) {
+      return [...DEFAULT_BALANCE_CATEGORIES];
+    }
+  }
+
+  /**
+   * 사용자가 선택한 밸런스 그래프 카테고리 키 배열 저장 (3~8개)
+   */
+  function saveBalanceCategoryKeys(keys) {
+    const { EXERCISE_CATEGORIES, BALANCE_MIN_COUNT, BALANCE_MAX_COUNT } = window.WorkoutModels;
+    const validSet = new Set(EXERCISE_CATEGORIES.map((c) => c.key));
+    if (!Array.isArray(keys)) return false;
+    const cleaned = keys
+      .filter((k, idx) => validSet.has(k) && keys.indexOf(k) === idx)
+      .slice(0, BALANCE_MAX_COUNT);
+    if (cleaned.length < BALANCE_MIN_COUNT) return false;
+    localStorage.setItem(STORAGE_KEYS.BALANCE_CATEGORIES, JSON.stringify(cleaned));
+    scheduleAutoFileSave();
+    return true;
+  }
+
+  /**
    * 데이터 백업용 JSON 객체 생성
    */
   function exportBackupData() {
@@ -362,6 +403,7 @@ window.WorkoutRepository = (function () {
       deletedDefaultIds: getDeletedDefaultIds(),
       exerciseOrder: getExerciseOrder(),
       exerciseOverrides: getExerciseOverrides(),
+      balanceCategories: getBalanceCategoryKeys(),
     };
   }
 
@@ -389,6 +431,9 @@ window.WorkoutRepository = (function () {
         STORAGE_KEYS.EXERCISE_OVERRIDES,
         JSON.stringify(data.exerciseOverrides)
       );
+    }
+    if (Array.isArray(data.balanceCategories)) {
+      saveBalanceCategoryKeys(data.balanceCategories);
     }
     saveAllLogs(data.logs);
     return data.logs.length;
@@ -914,6 +959,8 @@ window.WorkoutRepository = (function () {
     deleteExercise,
     deleteCustomExercise: deleteExercise,
     restoreDefaultExercises,
+    getBalanceCategoryKeys,
+    saveBalanceCategoryKeys,
     exportBackupData,
     importBackupData,
     clearAllData,

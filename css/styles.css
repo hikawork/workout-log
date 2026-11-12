@@ -1866,8 +1866,116 @@ body {
   gap: 5px;
 }
 
-.radar-legend-item:last-child {
+.radar-legend-grid.odd-count .radar-legend-item:last-child {
   grid-column: 1 / -1;
+}
+
+.cat-in-graph-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+
+/* 밸런스 항목 구성 모달 목록 */
+.balance-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.balance-opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.balance-opt-row:hover {
+  border-color: var(--primary);
+}
+
+.balance-opt-row.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.balance-opt-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+
+.balance-opt-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary-text-on);
+  flex-shrink: 0;
+}
+
+.balance-opt-row.selected .balance-opt-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.balance-opt-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.balance-opt-texts {
+  min-width: 0;
+  flex: 1;
+}
+
+.balance-opt-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.balance-opt-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.balance-opt-rec {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .radar-legend-top {

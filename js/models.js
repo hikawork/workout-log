@@ -16,7 +16,8 @@ window.WorkoutModels = (function () {
   };
 
   /**
-   * 5대 운동 카테고리 정의 (원형 레이더 차트 축 순서)
+   * 전체 운동 카테고리 풀 (11종: 기본 3대 축 + 전문 피트니스/스포츠 8종)
+   * 사용자는 이 중 3~8개를 선택해 내 운동 밸런스 그래프를 구성합니다.
    */
   const EXERCISE_CATEGORIES = [
     {
@@ -25,7 +26,8 @@ window.WorkoutModels = (function () {
       shortLabel: '유산소',
       icon: '🏃',
       color: '#38bdf8',
-      desc: '달리기·자전거·걷기',
+      desc: '달리기·자전거·걷기 등 심폐 지구력',
+      recommend: '시간(분·초)',
     },
     {
       key: 'strength',
@@ -33,33 +35,95 @@ window.WorkoutModels = (function () {
       shortLabel: '근력',
       icon: '💪',
       color: '#a3e635',
-      desc: '웨이트·맨몸 근력',
-    },
-    {
-      key: 'core',
-      label: '코어·밸런스',
-      shortLabel: '코어',
-      icon: '🧘',
-      color: '#a78bfa',
-      desc: '플랭크·복근·균형',
+      desc: '스쿼트·웨이트·팔굽혀펴기·턱걸이',
+      recommend: '횟수×세트',
     },
     {
       key: 'flexibility',
-      label: '유연성·회복',
+      label: '유연성',
       shortLabel: '유연성',
-      icon: '🌿',
+      icon: '🤸',
       color: '#34d399',
-      desc: '스트레칭·요가·폼롤러',
+      desc: '전신 스트레칭·유연성 향상 루틴',
+      recommend: '시간(분·초)',
+    },
+    {
+      key: 'core',
+      label: '코어 · 밸런스',
+      shortLabel: '코어·밸런스',
+      icon: '🧘',
+      color: '#a78bfa',
+      desc: '플랭크·데드버그·버드독·보수볼 균형',
+      recommend: '분·초 / 세트',
+    },
+    {
+      key: 'hiit',
+      label: '고강도 인터벌 · 서킷',
+      shortLabel: '인터벌·HIIT',
+      icon: '🔥',
+      color: '#fb923c',
+      desc: '버피·타바타·케틀벨 스윙·배틀 로프',
+      recommend: '분·초 / 세트',
+    },
+    {
+      key: 'power',
+      label: '파워 · 민첩성',
+      shortLabel: '파워·민첩',
+      icon: '⚡',
+      color: '#facc15',
+      desc: '박스 점프·점프 스쿼트·스프린트·래더',
+      recommend: '세트 / 초',
+    },
+    {
+      key: 'mobility',
+      label: '가동성 · 회복',
+      shortLabel: '가동성·회복',
+      icon: '🌿',
+      color: '#2dd4bf',
+      desc: '폼롤러 근막이완·관절 모빌리티·쿨다운',
+      recommend: '시간(분·초)',
     },
     {
       key: 'sports',
-      label: '스포츠·HIIT',
-      shortLabel: '스포츠·HIIT',
-      icon: '⚡',
-      color: '#fb923c',
-      desc: '버피·구기·고강도',
+      label: '스포츠 · 구기 · 라켓',
+      shortLabel: '스포츠·구기',
+      icon: '🏸',
+      color: '#60a5fa',
+      desc: '배드민턴·테니스·탁구·축구·농구·클라이밍·수영·골프',
+      recommend: '시간(분·초)',
+    },
+    {
+      key: 'combat',
+      label: '복싱 · 무술',
+      shortLabel: '복싱·무술',
+      icon: '🥊',
+      color: '#f43f5e',
+      desc: '쉐도우 복싱·샌드백·킥복싱·주짓수·유도',
+      recommend: '시간(분·초)',
+    },
+    {
+      key: 'mindbody',
+      label: '마인드바디 · 자세교정',
+      shortLabel: '자세·요가',
+      icon: '🕊️',
+      color: '#c084fc',
+      desc: '요가·필라테스·코어 호흡·거북목 교정',
+      recommend: '시간(분·초)',
+    },
+    {
+      key: 'outdoor',
+      label: '야외 · 일상 활동',
+      shortLabel: '야외·일상',
+      icon: '⛰️',
+      color: '#4ade80',
+      desc: '등산/트레킹·계단 오르기·트레일 러닝·스케이트',
+      recommend: '분·초 + 거리',
     },
   ];
+
+  const DEFAULT_BALANCE_CATEGORIES = ['cardio', 'strength', 'core', 'flexibility', 'sports'];
+  const BALANCE_MIN_COUNT = 3;
+  const BALANCE_MAX_COUNT = 8;
 
   /**
    * 기본 제공 운동 종목 목록
@@ -183,9 +247,16 @@ window.WorkoutModels = (function () {
     }
 
     const catText = `${item.category || ''} ${item.name || item.exerciseName || ''}`;
-    if (/코어|밸런스|플랭크|복근|데드버그/.test(catText)) return 'core';
-    if (/유연|회복|스트레칭|요가|필라테스|폼롤러|모빌리티/.test(catText)) return 'flexibility';
-    if (/스포츠|HIIT|인터벌|버피|구기|배드민턴|테니스|축구|농구|등산|수영|복싱|줄넘기/.test(catText))
+    if (/가동성|회복|폼롤러|모빌리티|근막이완|쿨다운/.test(catText)) return 'mobility';
+    if (/인터벌|서킷|HIIT|버피|타바타|케틀벨|배틀\s*로프|마운틴\s*클라이머/i.test(catText))
+      return 'hiit';
+    if (/파워|민첩|플라이오|박스\s*점프|점프\s*스쿼트|스프린트|래더/.test(catText)) return 'power';
+    if (/복싱|무술|샌드백|킥복싱|주짓수|유도|태권도/.test(catText)) return 'combat';
+    if (/마인드바디|자세교정|요가|필라테스|거북목|라운드숄더/.test(catText)) return 'mindbody';
+    if (/야외|일상|등산|트레킹|계단|트레일|인라인|스케이트/.test(catText)) return 'outdoor';
+    if (/코어|밸런스|플랭크|복근|데드버그|버드독|보수볼/.test(catText)) return 'core';
+    if (/유연|스트레칭/.test(catText)) return 'flexibility';
+    if (/스포츠|구기|라켓|배드민턴|테니스|탁구|축구|농구|클라이밍|수영|골프/.test(catText))
       return 'sports';
     if (/유산소|달리기|러닝|자전거|걷기|산책|사이클/.test(catText)) return 'cardio';
     if (/근력|웨이트|하체|상체|맨몸|스쿼트|팔굽|턱걸이|벤치|데드/.test(catText))
@@ -305,6 +376,9 @@ window.WorkoutModels = (function () {
   return {
     RECORD_TYPES,
     EXERCISE_CATEGORIES,
+    DEFAULT_BALANCE_CATEGORIES,
+    BALANCE_MIN_COUNT,
+    BALANCE_MAX_COUNT,
     DEFAULT_EXERCISES,
     getCategoryMeta,
     resolveCategoryKey,

@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css?v=20261112_2" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261112_4" />
   </head>
   <body>
     <div class="app-shell">
@@ -149,15 +149,18 @@
           <!-- 핵심 요약 KPI 4종 -->
           <div id="stats-kpi-grid" class="kpi-grid"></div>
 
-          <!-- 5대 운동 카테고리 밸런스 원형 레이더 그래프 -->
+          <!-- 내 운동 밸런스 원형 레이더 그래프 (3~8개 항목 사용자 맞춤) -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">
                 <span class="section-step-pill">BALANCE</span>
-                <span>5대 운동 밸런스</span>
+                <span>내 운동 밸런스</span>
               </div>
-              <span id="radar-period-goal-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700"></span>
+              <button type="button" id="open-balance-config-btn" class="ex-manage-toggle-btn">
+                ⚙️ 항목 구성
+              </button>
             </div>
+            <div id="radar-period-goal-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: -6px 0 8px;"></div>
             <div id="stats-radar-container" class="radar-section"></div>
           </div>
 
@@ -244,7 +247,7 @@
           <input type="text" id="custom-ex-name" class="text-input" placeholder="예: 벤치프레스, 스트레칭, 수영" maxlength="20" />
         </div>
         <div class="field-group">
-          <label class="field-label">운동 카테고리 (5대 구분)</label>
+          <label class="field-label">운동 카테고리 (그래프에 포함된 항목 표시)</label>
           <div id="custom-category-picker" class="category-picker-grid"></div>
           <input type="hidden" id="custom-ex-category" value="strength" />
         </div>
@@ -273,14 +276,35 @@
       </div>
     </div>
 
+    <!-- 밸런스 그래프 항목 구성 모달 (3~8개 선택) -->
+    <div id="balance-config-modal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="card-header" style="margin-bottom: 0">
+          <div class="card-title">내 운동 밸런스 항목 구성</div>
+          <span id="balance-select-counter" class="section-step-pill">5 / 8</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.45; margin: -4px 0 2px;">
+          원형 밸런스 그래프에 표시할 카테고리를 <strong>최소 3개 ~ 최대 8개</strong>까지 선택하세요.
+        </p>
+        <div id="balance-config-list" class="balance-config-list"></div>
+        <div style="display: flex; justify-content: flex-end">
+          <button type="button" id="reset-balance-config-btn" class="preset-btn">↺ 기본 5개로 복원</button>
+        </div>
+        <div class="submit-btn-row">
+          <button type="button" id="close-balance-config-modal" class="secondary-btn">취소</button>
+          <button type="button" id="save-balance-config-btn" class="primary-btn">적용하기</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 토스트 메시지 -->
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js?v=20261112_2"></script>
-    <script src="./js/models.js?v=20261112_2"></script>
-    <script src="./js/repository.js?v=20261112_2"></script>
-    <script src="./js/stats.js?v=20261112_3"></script>
-    <script src="./js/app.js?v=20261112_2"></script>
+    <script src="./js/icons.js?v=20261112_4"></script>
+    <script src="./js/models.js?v=20261112_4"></script>
+    <script src="./js/repository.js?v=20261112_4"></script>
+    <script src="./js/stats.js?v=20261112_4"></script>
+    <script src="./js/app.js?v=20261112_4"></script>
   </body>
 </html>

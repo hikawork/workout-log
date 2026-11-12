@@ -89,6 +89,7 @@
     statsPeriod: 'month', // 'week' | 'month' | 'days30' | 'all'
     customIconKey: 'custom_flame',
     customCategoryKey: 'strength',
+    draftBalanceKeys: [],
     isManagingExercises: false,
     editingExerciseId: null,
   };
@@ -162,21 +163,73 @@
   }
 
   /**
-   * 커스텀 운동 모달 내부 5대 카테고리 선택기 렌더링
+   * 커스텀 운동 모달 내부 11종 카테고리 선택기 렌더링 (그래프에 포함된 항목을 우선 노출 및 표시)
    */
   function renderCustomCategoryPicker() {
     const container = document.getElementById('custom-category-picker');
     if (!container) return;
-    container.innerHTML = Models.EXERCISE_CATEGORIES.map(
-      (cat) => `
-      <button type="button" class="category-pick-btn ${
-        state.customCategoryKey === cat.key ? 'selected' : ''
-      }" data-pick-category="${cat.key}">
-        <span class="cat-pick-icon">${cat.icon}</span>
-        <span class="cat-pick-label">${cat.label}</span>
-      </button>
-    `
-    ).join('');
+    const activeSet = new Set(Repo.getBalanceCategoryKeys());
+    const sortedCats = [...Models.EXERCISE_CATEGORIES].sort((a, b) => {
+      const aActive = activeSet.has(a.key) ? 0 : 1;
+      const bActive = activeSet.has(b.key) ? 0 : 1;
+      return aActive - bActive;
+    });
+
+    container.innerHTML = sortedCats
+      .map((cat) => {
+        const inGraph = activeSet.has(cat.key);
+        return `
+        <button type="button" class="category-pick-btn ${
+          state.customCategoryKey === cat.key ? 'selected' : ''
+        } ${inGraph ? 'in-graph' : ''}" data-pick-category="${cat.key}" title="${escapeHtml(
+          cat.desc
+        )}">
+          <span class="cat-pick-icon">${cat.icon}</span>
+          <span class="cat-pick-label">${cat.label}</span>
+          ${inGraph ? '<span class="cat-in-graph-dot" title="현재 밸런스 그래프 포함"></span>' : ''}
+        </button>
+      `;
+      })
+      .join('');
+  }
+
+  /**
+   * 내 운동 밸런스 그래프 항목 선택 모달 렌더링 (3~8개)
+   */
+  function renderBalanceConfigModal() {
+    const listEl = document.getElementById('balance-config-list');
+    const counterEl = document.getElementById('balance-select-counter');
+    if (!listEl) return;
+
+    const selectedSet = new Set(state.draftBalanceKeys);
+    if (counterEl) {
+      counterEl.textContent = `${selectedSet.size} / ${Models.BALANCE_MAX_COUNT} 선택`;
+    }
+
+    listEl.innerHTML = Models.EXERCISE_CATEGORIES.map((cat) => {
+      const isChecked = selectedSet.has(cat.key);
+      return `
+        <button type="button" class="balance-opt-row ${
+          isChecked ? 'selected' : ''
+        }" data-toggle-balance-cat="${cat.key}">
+          <div class="balance-opt-left">
+            <span class="balance-opt-check">${isChecked ? '✓' : ''}</span>
+            <span class="balance-opt-icon">${cat.icon}</span>
+            <div class="balance-opt-texts">
+              <div class="balance-opt-title">${escapeHtml(cat.label)}</div>
+              <div class="balance-opt-desc">${escapeHtml(cat.desc)}</div>
+            </div>
+          </div>
+          <span class="balance-opt-rec">${escapeHtml(cat.recommend)}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function openBalanceConfigModal() {
+    state.draftBalanceKeys = [...Repo.getBalanceCategoryKeys()];
+    renderBalanceConfigModal();
+    document.getElementById('balance-config-modal')?.classList.add('open');
   }
 
   /**
@@ -885,21 +938,22 @@
   }
 
   /**
-   * 5대 운동 카테고리 원형 레이더 성취도 차트 렌더링 (동심원 + 중심 방사형 오각형)
+   * 사용자 맞춤 운동 카테고리(3~8개) 원형 레이더 성취도 차트 렌더링 (N각형 동심원 그래프)
    */
   function renderCategoryRadar(filteredLogs, allExercises, period) {
     const container = document.getElementById('stats-radar-container');
     const goalBadge = document.getElementById('radar-period-goal-badge');
     if (!container) return;
 
-    const balance = Stats.computeCategoryBalance(filteredLogs, allExercises, period);
+    const selectedKeys = Repo.getBalanceCategoryKeys();
+    const balance = Stats.computeCategoryBalance(filteredLogs, allExercises, period, selectedKeys);
     if (goalBadge) {
-      goalBadge.textContent = balance.goalLabel;
+      goalBadge.textContent = `${balance.items.length}개 항목 · ${balance.goalLabel}`;
     }
 
-    const cx = 170;
-    const cy = 142;
-    const maxR = 82;
+    const cx = 180;
+    const cy = 148;
+    const maxR = 80;
     const rings = [20, 40, 60, 80, 100];
     const items = balance.items;
     const count = items.length;
@@ -907,6 +961,7 @@
     const getPoint = (idx, radius) => {
       const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / count;
       return {
+        angle,
         x: cx + Math.cos(angle) * radius,
         y: cy + Math.sin(angle) * radius,
       };
@@ -932,7 +987,7 @@
       })
       .join('');
 
-    // 눈금 숫자 (20, 40, 60, 80, 100)
+    // 눈금 숫자
     const ringTicksSvg = [40, 80, 100]
       .map((pct) => {
         const yPos = cy - (pct / 100) * maxR + 3;
@@ -940,7 +995,7 @@
       })
       .join('');
 
-    // 2. 원 중심에서 5방향으로 뻗는 축선
+    // 2. 원 중심에서 N방향으로 뻗는 축선
     const axesSvg = items
       .map((_, i) => {
         const end = getPoint(i, maxR);
@@ -950,7 +1005,7 @@
       })
       .join('');
 
-    // 3. 성취도 오각형 폴리곤 & 꼭짓점 도트
+    // 3. 성취도 N각형 폴리곤 & 꼭짓점 도트
     const polyCoords = items.map((item, i) => {
       const r = item.plotPercent > 0 ? Math.max(8, (item.plotPercent / 100) * maxR) : 3;
       return getPoint(i, r);
@@ -973,34 +1028,34 @@
       })
       .join('');
 
-    // 4. 꼭짓점 바깥쪽 카테고리 라벨 + 성취도(%)
+    // 4. 꼭짓점 바깥쪽 라벨 + 성취도(%) — 임의 각도 N각형에 맞춰 자동 정렬
     const labelsSvg = items
       .map((item, i) => {
-        const labelR = maxR + 24;
+        const labelR = maxR + (count >= 7 ? 24 : 22);
         const pos = getPoint(i, labelR);
+        const cos = Math.cos(pos.angle);
+        const sin = Math.sin(pos.angle);
+
         let anchor = 'middle';
         let dx = 0;
         let dy = 0;
 
-        if (i === 0) {
+        if (Math.abs(cos) < 0.22) {
           anchor = 'middle';
-          dy = -10;
-        } else if (i === 1) {
+        } else if (cos > 0) {
           anchor = 'start';
-          dx = 2;
-          dy = -2;
-        } else if (i === 2) {
-          anchor = 'start';
-          dx = 2;
-          dy = 8;
-        } else if (i === 3) {
-          anchor = 'end';
-          dx = -2;
-          dy = 8;
+          dx = 3;
         } else {
           anchor = 'end';
-          dx = -2;
-          dy = -2;
+          dx = -3;
+        }
+
+        if (sin < -0.65) {
+          dy = -10;
+        } else if (sin > 0.65) {
+          dy = 8;
+        } else {
+          dy = -1;
         }
 
         const lx = pos.x + dx;
@@ -1020,7 +1075,7 @@
       })
       .join('');
 
-    // 5. 하단 5개 카테고리 상세 카드
+    // 5. 하단 선택된 카테고리 상세 카드
     const legendHtml = items
       .map(
         (item) => `
@@ -1047,7 +1102,7 @@
 
     container.innerHTML = `
       <div class="radar-svg-wrap">
-        <svg viewBox="0 0 340 282" class="radar-svg" role="img" aria-label="5대 운동 밸런스 레이더 차트">
+        <svg viewBox="0 0 360 298" class="radar-svg" role="img" aria-label="내 운동 밸런스 레이더 차트">
           ${circlesSvg}
           ${axesSvg}
           ${ringTicksSvg}
@@ -1068,7 +1123,7 @@
           <strong>${balance.averagePercent}%</strong>
         </div>
       </div>
-      <div class="radar-legend-grid">
+      <div class="radar-legend-grid ${items.length % 2 === 1 ? 'odd-count' : ''}">
         ${legendHtml}
       </div>
     `;
@@ -1842,6 +1897,54 @@
         }
       };
       reader.readAsText(file);
+    });
+
+    // 밸런스 그래프 항목 구성 모달 (3~8개 선택)
+    document.getElementById('open-balance-config-btn')?.addEventListener('click', () => {
+      openBalanceConfigModal();
+    });
+
+    document.getElementById('close-balance-config-modal')?.addEventListener('click', () => {
+      document.getElementById('balance-config-modal')?.classList.remove('open');
+    });
+
+    document.getElementById('balance-config-list')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-toggle-balance-cat]');
+      if (!btn) return;
+      const key = btn.dataset.toggleBalanceCat;
+      const idx = state.draftBalanceKeys.indexOf(key);
+      if (idx !== -1) {
+        if (state.draftBalanceKeys.length <= Models.BALANCE_MIN_COUNT) {
+          showToast(`최소 ${Models.BALANCE_MIN_COUNT}개 이상 선택해야 합니다.`);
+          return;
+        }
+        state.draftBalanceKeys.splice(idx, 1);
+      } else {
+        if (state.draftBalanceKeys.length >= Models.BALANCE_MAX_COUNT) {
+          showToast(`최대 ${Models.BALANCE_MAX_COUNT}개까지만 선택할 수 있습니다.`);
+          return;
+        }
+        state.draftBalanceKeys.push(key);
+      }
+      renderBalanceConfigModal();
+    });
+
+    document.getElementById('reset-balance-config-btn')?.addEventListener('click', () => {
+      state.draftBalanceKeys = [...Models.DEFAULT_BALANCE_CATEGORIES];
+      renderBalanceConfigModal();
+      showToast('기본 5개 항목으로 되돌렸습니다.');
+    });
+
+    document.getElementById('save-balance-config-btn')?.addEventListener('click', () => {
+      if (state.draftBalanceKeys.length < Models.BALANCE_MIN_COUNT) {
+        alert(`최소 ${Models.BALANCE_MIN_COUNT}개 이상 선택해 주세요.`);
+        return;
+      }
+      Repo.saveBalanceCategoryKeys(state.draftBalanceKeys);
+      document.getElementById('balance-config-modal')?.classList.remove('open');
+      renderCustomCategoryPicker();
+      renderStatsTab();
+      showToast(`${state.draftBalanceKeys.length}개 항목으로 밸런스 그래프를 구성했습니다!`);
     });
 
     // 커스텀 운동 종목 추가 모달
