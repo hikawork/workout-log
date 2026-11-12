@@ -4,7 +4,8 @@
  */
 
 window.WorkoutStats = (function () {
-  const { RECORD_TYPES, formatDateKey } = window.WorkoutModels;
+  const { RECORD_TYPES, EXERCISE_CATEGORIES, resolveCategoryKey, formatDateKey, formatDuration } =
+    window.WorkoutModels;
 
   /**
    * 기간 필터('week' | 'month' | 'days30' | 'all')에 따른 시작일~종료일 계산
@@ -306,10 +307,111 @@ window.WorkoutStats = (function () {
     };
   }
 
+  /**
+   * 5대 운동 카테고리별 성취도(0~100%) 레이더 차트 데이터 계산 (기간별 기본 자동 목표 기준)
+   */
+  function computeCategoryBalance(logs, allExercises = [], period = 'month') {
+    let targetPoints = 240;
+    let goalLabel = '카테고리별 240분 / 48세트 기준';
+
+    if (period === 'week') {
+      targetPoints = 60;
+      goalLabel = '주간 기준: 60분 또는 12세트 = 100%';
+    } else if (period === 'month') {
+      targetPoints = 240;
+      goalLabel = '월간 기준: 240분 또는 48세트 = 100%';
+    } else if (period === 'days30') {
+      targetPoints = 240;
+      goalLabel = '30일 기준: 240분 또는 48세트 = 100%';
+    } else {
+      // 전체 기간: 가장 오래된 기록부터 오늘까지의 주 수에 비례 (최소 1주 ~ 최대 12주)
+      let weeks = 4;
+      if (logs.length > 0) {
+        const sortedDates = logs.map((l) => l.date).sort();
+        const oldest = new Date(sortedDates[0]);
+        const now = new Date();
+        const diffDays = Math.max(7, Math.round((now - oldest) / 86400000));
+        weeks = Math.min(12, Math.max(1, Math.ceil(diffDays / 7)));
+      }
+      targetPoints = weeks * 60;
+      goalLabel = `누적 기준(${weeks}주): ${targetPoints}분 또는 ${Math.round(
+        targetPoints / 5
+      )}세트 = 100%`;
+    }
+
+    const categoryMap = {};
+    EXERCISE_CATEGORIES.forEach((cat) => {
+      categoryMap[cat.key] = {
+        key: cat.key,
+        label: cat.label,
+        shortLabel: cat.shortLabel,
+        icon: cat.icon,
+        color: cat.color,
+        count: 0,
+        totalSeconds: 0,
+        totalSets: 0,
+        points: 0,
+      };
+    });
+
+    logs.forEach((log) => {
+      const catKey = resolveCategoryKey(log, allExercises);
+      const bucket = categoryMap[catKey] || categoryMap.strength;
+      bucket.count += 1;
+
+      if (log.recordType === RECORD_TYPES.TIME) {
+        const sec = Math.round((Number(log.minutes) || 0) * 60 + (Number(log.seconds) || 0));
+        bucket.totalSeconds += sec;
+        bucket.points += sec / 60; // 1분 = 1점
+      } else {
+        const sets = Number(log.sets) || 0;
+        bucket.totalSets += sets;
+        bucket.points += sets * 5; // 1세트 = 5점 (12세트 = 60점)
+      }
+    });
+
+    const items = EXERCISE_CATEGORIES.map((cat) => {
+      const b = categoryMap[cat.key];
+      const rawPercent = Math.round((b.points / Math.max(1, targetPoints)) * 100);
+      const plotPercent = Math.min(100, Math.max(0, rawPercent));
+
+      let metricText = '기록 없음';
+      if (b.count > 0) {
+        const parts = [];
+        if (b.totalSeconds > 0) {
+          parts.push(formatDuration(Math.floor(b.totalSeconds / 60), b.totalSeconds % 60));
+        }
+        if (b.totalSets > 0) {
+          parts.push(`${b.totalSets}세트`);
+        }
+        metricText = parts.join(' + ') || `${b.count}건`;
+      }
+
+      return {
+        ...b,
+        targetPoints,
+        percent: rawPercent,
+        plotPercent,
+        metricText,
+      };
+    });
+
+    const averagePercent = Math.round(
+      items.reduce((acc, cur) => acc + Math.min(100, cur.percent), 0) / items.length
+    );
+
+    return {
+      items,
+      goalLabel,
+      averagePercent,
+    };
+  }
+
   return {
     getDateRangeForPeriod,
     calculateStreak,
     computeSummary,
     getPeriodTrend,
+    computeCategoryBalance,
   };
 })();

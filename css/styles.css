@@ -1747,14 +1747,180 @@ body {
 .modal-box {
   width: 100%;
   max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 14px;
   box-shadow: var(--shadow-card);
+}
+
+.category-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.category-pick-btn:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.category-pick-btn.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* 5대 운동 밸런스 레이더 차트 */
+.radar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.radar-svg-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.radar-svg {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-ring-tick {
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--text-muted);
+}
+
+.radar-cat-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--text-primary);
+}
+
+.radar-cat-pct {
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.radar-center-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.radar-center-score-pill strong {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.radar-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.radar-legend-item {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.radar-legend-item:last-child {
+  grid-column: 1 / -1;
+}
+
+.radar-legend-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.radar-legend-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.radar-legend-pct {
+  font-size: 12.5px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.radar-legend-bar-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+
+.radar-legend-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.radar-legend-metric {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .icon-picker-grid {

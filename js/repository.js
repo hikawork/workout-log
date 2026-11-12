@@ -183,9 +183,21 @@ window.WorkoutRepository = (function () {
     const deletedSet = new Set(getDeletedDefaultIds());
     const overrides = getExerciseOverrides();
     const defaults = window.WorkoutModels.DEFAULT_EXERCISES.filter((ex) => !deletedSet.has(ex.id)).map(
-      (ex) => (overrides[ex.id] ? { ...ex, ...overrides[ex.id] } : ex)
+      (ex) => {
+        const merged = overrides[ex.id] ? { ...ex, ...overrides[ex.id] } : { ...ex };
+        merged.categoryKey = window.WorkoutModels.resolveCategoryKey(merged);
+        merged.category = window.WorkoutModels.getCategoryMeta(merged.categoryKey).label;
+        return merged;
+      }
     );
-    const customs = getCustomExercises();
+    const customs = getCustomExercises().map((ex) => {
+      const catKey = window.WorkoutModels.resolveCategoryKey(ex);
+      return {
+        ...ex,
+        categoryKey: catKey,
+        category: window.WorkoutModels.getCategoryMeta(catKey).label,
+      };
+    });
     const combined = [...defaults, ...customs];
 
     const savedOrder = getExerciseOrder();
@@ -223,18 +235,23 @@ window.WorkoutRepository = (function () {
   function addCustomExercise(params) {
     const customs = getCustomExercises();
     const recordType = params.recordType || window.WorkoutModels.RECORD_TYPES.SETS;
+    const categoryKey =
+      params.categoryKey ||
+      (recordType === window.WorkoutModels.RECORD_TYPES.TIME ? 'cardio' : 'strength');
+    const categoryMeta = window.WorkoutModels.getCategoryMeta(categoryKey);
     const newExercise = {
       id: `custom_${Date.now()}`,
       name: (params.name || '').trim(),
       icon: params.icon || 'custom_flame',
-      category: params.category || '내 운동',
+      categoryKey,
+      category: categoryMeta.label,
       recordType,
       hasDistance: recordType === window.WorkoutModels.RECORD_TYPES.TIME,
       hasWeight: recordType === window.WorkoutModels.RECORD_TYPES.SETS,
       defaultMinutes: 30,
       defaultReps: 12,
       defaultSets: 3,
-      color: params.color || '#0ea5e9',
+      color: params.color || categoryMeta.color || '#0ea5e9',
       isCustom: true,
     };
     customs.push(newExercise);
@@ -244,12 +261,16 @@ window.WorkoutRepository = (function () {
   }
 
   /**
-   * 운동 종목 정보 수정 (이름, 아이콘, 기록 방식 변경 - 커스텀 및 기본 종목 모두 지원)
+   * 운동 종목 정보 수정 (이름, 아이콘, 기록 방식, 카테고리 변경 - 커스텀 및 기본 종목 모두 지원)
    */
   function updateExercise(exerciseId, params) {
     const name = (params.name || '').trim();
     const icon = params.icon || 'custom_flame';
     const recordType = params.recordType || window.WorkoutModels.RECORD_TYPES.SETS;
+    const categoryKey =
+      params.categoryKey ||
+      window.WorkoutModels.resolveCategoryKey({ ...params, recordType }, getAllExercises());
+    const categoryLabel = window.WorkoutModels.getCategoryMeta(categoryKey).label;
     const hasDistance = recordType === window.WorkoutModels.RECORD_TYPES.TIME;
     const hasWeight = recordType === window.WorkoutModels.RECORD_TYPES.SETS;
 
@@ -261,6 +282,8 @@ window.WorkoutRepository = (function () {
         ...customs[customIdx],
         name: name || customs[customIdx].name,
         icon,
+        categoryKey,
+        category: categoryLabel,
         recordType,
         hasDistance,
         hasWeight,
@@ -271,6 +294,8 @@ window.WorkoutRepository = (function () {
       overrides[exerciseId] = {
         name,
         icon,
+        categoryKey,
+        category: categoryLabel,
         recordType,
         hasDistance,
         hasWeight,
@@ -278,13 +303,14 @@ window.WorkoutRepository = (function () {
       localStorage.setItem(STORAGE_KEYS.EXERCISE_OVERRIDES, JSON.stringify(overrides));
     }
 
-    // 기존 운동 기록들 중 해당 종목의 이름/아이콘도 함께 동기화
+    // 기존 운동 기록들 중 해당 종목의 이름/아이콘/카테고리도 함께 동기화
     const logs = getAllLogs();
     let logsModified = false;
     logs.forEach((log) => {
       if (log.exerciseId === exerciseId) {
         if (name) log.exerciseName = name;
         log.exerciseIcon = icon;
+        log.categoryKey = categoryKey;
         logsModified = true;
       }
     });

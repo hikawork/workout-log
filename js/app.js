@@ -88,6 +88,7 @@
     calendarSelectedDate: Models.formatDateKey(new Date()),
     statsPeriod: 'month', // 'week' | 'month' | 'days30' | 'all'
     customIconKey: 'custom_flame',
+    customCategoryKey: 'strength',
     isManagingExercises: false,
     editingExerciseId: null,
   };
@@ -97,6 +98,7 @@
    */
   function init() {
     initTheme();
+    renderCustomCategoryPicker();
     renderCustomIconPicker();
     selectExerciseForDate(state.selectedExerciseId);
     bindStaticEvents();
@@ -160,6 +162,24 @@
   }
 
   /**
+   * 커스텀 운동 모달 내부 5대 카테고리 선택기 렌더링
+   */
+  function renderCustomCategoryPicker() {
+    const container = document.getElementById('custom-category-picker');
+    if (!container) return;
+    container.innerHTML = Models.EXERCISE_CATEGORIES.map(
+      (cat) => `
+      <button type="button" class="category-pick-btn ${
+        state.customCategoryKey === cat.key ? 'selected' : ''
+      }" data-pick-category="${cat.key}">
+        <span class="cat-pick-icon">${cat.icon}</span>
+        <span class="cat-pick-label">${cat.label}</span>
+      </button>
+    `
+    ).join('');
+  }
+
+  /**
    * 커스텀 운동 모달 내부 벡터 아이콘 선택기 렌더링
    */
   function renderCustomIconPicker() {
@@ -189,6 +209,7 @@
     const saveBtn = document.getElementById('save-custom-ex-btn');
     const nameEl = document.getElementById('custom-ex-name');
     const iconHiddenEl = document.getElementById('custom-ex-icon');
+    const catHiddenEl = document.getElementById('custom-ex-category');
     const selectableKeys = Icons.getCustomSelectableIcons().map((o) => o.key);
 
     if (targetEx) {
@@ -196,6 +217,10 @@
       if (titleEl) titleEl.textContent = '운동 종목 설정 수정';
       if (saveBtn) saveBtn.textContent = '수정 저장';
       if (nameEl) nameEl.value = targetEx.name || '';
+
+      const initialCat = Models.resolveCategoryKey(targetEx);
+      state.customCategoryKey = initialCat;
+      if (catHiddenEl) catHiddenEl.value = initialCat;
 
       const initialIcon = selectableKeys.includes(targetEx.icon)
         ? targetEx.icon
@@ -214,6 +239,8 @@
       if (titleEl) titleEl.textContent = '나만의 운동 종목 추가';
       if (saveBtn) saveBtn.textContent = '추가하기';
       if (nameEl) nameEl.value = '';
+      state.customCategoryKey = 'strength';
+      if (catHiddenEl) catHiddenEl.value = 'strength';
       state.customIconKey = 'custom_flame';
       if (iconHiddenEl) iconHiddenEl.value = 'custom_flame';
 
@@ -221,6 +248,7 @@
       if (defaultRadio) defaultRadio.checked = true;
     }
 
+    renderCustomCategoryPicker();
     renderCustomIconPicker();
     modal?.classList.add('open');
   }
@@ -433,7 +461,9 @@
       .map((ex) => {
         const isSelected = ex.id === state.selectedExerciseId;
         const isRecorded = recordedExerciseIds.has(ex.id);
-        const typeLabel = ex.recordType === Models.RECORD_TYPES.TIME ? 'TIME · 분' : 'SETS · 회';
+        const catMeta = Models.getCategoryMeta(Models.resolveCategoryKey(ex));
+        const unitLabel = ex.recordType === Models.RECORD_TYPES.TIME ? '분·초' : '세트';
+        const typeLabel = `${catMeta.shortLabel} · ${unitLabel}`;
         const recordedBadge =
           !state.isManagingExercises && isRecorded
             ? `<span class="recorded-dot-badge">DONE</span>`
@@ -855,10 +885,201 @@
   }
 
   /**
+   * 5대 운동 카테고리 원형 레이더 성취도 차트 렌더링 (동심원 + 중심 방사형 오각형)
+   */
+  function renderCategoryRadar(filteredLogs, allExercises, period) {
+    const container = document.getElementById('stats-radar-container');
+    const goalBadge = document.getElementById('radar-period-goal-badge');
+    if (!container) return;
+
+    const balance = Stats.computeCategoryBalance(filteredLogs, allExercises, period);
+    if (goalBadge) {
+      goalBadge.textContent = balance.goalLabel;
+    }
+
+    const cx = 170;
+    const cy = 142;
+    const maxR = 82;
+    const rings = [20, 40, 60, 80, 100];
+    const items = balance.items;
+    const count = items.length;
+
+    const getPoint = (idx, radius) => {
+      const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / count;
+      return {
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius,
+      };
+    };
+
+    // 1. 둥근 동심원 가이드 (20% ~ 100%)
+    const circlesSvg = rings
+      .map((pct) => {
+        const r = (pct / 100) * maxR;
+        const isOuter = pct === 100;
+        return `
+          <circle
+            cx="${cx}"
+            cy="${cy}"
+            r="${r.toFixed(1)}"
+            fill="${isOuter ? 'var(--primary-soft)' : 'none'}"
+            fill-opacity="${isOuter ? '0.18' : '0'}"
+            stroke="${isOuter ? 'var(--border-highlight)' : 'var(--border-color)'}"
+            stroke-width="${isOuter ? '1.6' : '1'}"
+            stroke-dasharray="${isOuter ? 'none' : '3 3'}"
+          />
+        `;
+      })
+      .join('');
+
+    // 눈금 숫자 (20, 40, 60, 80, 100)
+    const ringTicksSvg = [40, 80, 100]
+      .map((pct) => {
+        const yPos = cy - (pct / 100) * maxR + 3;
+        return `<text x="${cx + 4}" y="${yPos.toFixed(1)}" class="radar-ring-tick">${pct}%</text>`;
+      })
+      .join('');
+
+    // 2. 원 중심에서 5방향으로 뻗는 축선
+    const axesSvg = items
+      .map((_, i) => {
+        const end = getPoint(i, maxR);
+        return `<line x1="${cx}" y1="${cy}" x2="${end.x.toFixed(1)}" y2="${end.y.toFixed(
+          1
+        )}" stroke="var(--border-color)" stroke-width="1.2" />`;
+      })
+      .join('');
+
+    // 3. 성취도 오각형 폴리곤 & 꼭짓점 도트
+    const polyCoords = items.map((item, i) => {
+      const r = item.plotPercent > 0 ? Math.max(8, (item.plotPercent / 100) * maxR) : 3;
+      return getPoint(i, r);
+    });
+    const pointsAttr = polyCoords.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+    const dotsSvg = polyCoords
+      .map((p, i) => {
+        const item = items[i];
+        return `
+          <circle
+            cx="${p.x.toFixed(1)}"
+            cy="${p.y.toFixed(1)}"
+            r="${item.plotPercent > 0 ? '4.5' : '2.8'}"
+            fill="${item.plotPercent > 0 ? item.color : 'var(--text-muted)'}"
+            stroke="var(--bg-card-solid)"
+            stroke-width="2"
+          />
+        `;
+      })
+      .join('');
+
+    // 4. 꼭짓점 바깥쪽 카테고리 라벨 + 성취도(%)
+    const labelsSvg = items
+      .map((item, i) => {
+        const labelR = maxR + 24;
+        const pos = getPoint(i, labelR);
+        let anchor = 'middle';
+        let dx = 0;
+        let dy = 0;
+
+        if (i === 0) {
+          anchor = 'middle';
+          dy = -10;
+        } else if (i === 1) {
+          anchor = 'start';
+          dx = 2;
+          dy = -2;
+        } else if (i === 2) {
+          anchor = 'start';
+          dx = 2;
+          dy = 8;
+        } else if (i === 3) {
+          anchor = 'end';
+          dx = -2;
+          dy = 8;
+        } else {
+          anchor = 'end';
+          dx = -2;
+          dy = -2;
+        }
+
+        const lx = pos.x + dx;
+        const ly = pos.y + dy;
+        return `
+          <g class="radar-axis-label-group">
+            <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" class="radar-cat-name">
+              ${item.icon} ${escapeHtml(item.shortLabel)}
+            </text>
+            <text x="${lx.toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="${anchor}" class="radar-cat-pct" style="fill: ${
+          item.percent > 0 ? item.color : 'var(--text-muted)'
+        }">
+              ${item.percent}%
+            </text>
+          </g>
+        `;
+      })
+      .join('');
+
+    // 5. 하단 5개 카테고리 상세 카드
+    const legendHtml = items
+      .map(
+        (item) => `
+        <div class="radar-legend-item">
+          <div class="radar-legend-top">
+            <span class="radar-legend-name">
+              <span class="radar-dot" style="background: ${item.color}"></span>
+              <span>${item.icon} ${escapeHtml(item.label)}</span>
+            </span>
+            <span class="radar-legend-pct" style="color: ${
+              item.percent > 0 ? item.color : 'var(--text-muted)'
+            }">${item.percent}%</span>
+          </div>
+          <div class="radar-legend-bar-track">
+            <div class="radar-legend-bar-fill" style="width: ${item.plotPercent}%; background: ${
+          item.color
+        }"></div>
+          </div>
+          <div class="radar-legend-metric">${item.metricText}</div>
+        </div>
+      `
+      )
+      .join('');
+
+    container.innerHTML = `
+      <div class="radar-svg-wrap">
+        <svg viewBox="0 0 340 282" class="radar-svg" role="img" aria-label="5대 운동 밸런스 레이더 차트">
+          ${circlesSvg}
+          ${axesSvg}
+          ${ringTicksSvg}
+          <polygon
+            points="${pointsAttr}"
+            fill="var(--primary)"
+            fill-opacity="0.22"
+            stroke="var(--primary)"
+            stroke-width="2.4"
+            stroke-linejoin="round"
+          />
+          <circle cx="${cx}" cy="${cy}" r="3" fill="var(--text-muted)" opacity="0.65" />
+          ${dotsSvg}
+          ${labelsSvg}
+        </svg>
+        <div class="radar-center-score-pill">
+          <span>종합 밸런스 달성률</span>
+          <strong>${balance.averagePercent}%</strong>
+        </div>
+      </div>
+      <div class="radar-legend-grid">
+        ${legendHtml}
+      </div>
+    `;
+  }
+
+  /**
    * 통계 탭 렌더링
    */
   function renderStatsTab() {
     const allLogs = Repo.getAllLogs();
+    const allExercises = Repo.getAllExercises();
     const range = Stats.getDateRangeForPeriod(state.statsPeriod);
     const filteredLogs = Repo.getLogsByDateRange(range.startDate, range.endDate);
     const summary = Stats.computeSummary(filteredLogs, allLogs);
@@ -897,6 +1118,8 @@
         </div>
       `;
     }
+
+    renderCategoryRadar(filteredLogs, allExercises, state.statsPeriod);
 
     const trendContainer = document.getElementById('stats-trend-chart');
     const trendTitleEl = document.getElementById('stats-trend-title');
@@ -1622,6 +1845,15 @@
     });
 
     // 커스텀 운동 종목 추가 모달
+    document.getElementById('custom-category-picker')?.addEventListener('click', (e) => {
+      const pick = e.target.closest('[data-pick-category]');
+      if (!pick) return;
+      state.customCategoryKey = pick.dataset.pickCategory;
+      const hiddenCatEl = document.getElementById('custom-ex-category');
+      if (hiddenCatEl) hiddenCatEl.value = state.customCategoryKey;
+      renderCustomCategoryPicker();
+    });
+
     document.getElementById('custom-icon-picker')?.addEventListener('click', (e) => {
       const pick = e.target.closest('[data-pick-icon]');
       if (!pick) return;
@@ -1638,6 +1870,7 @@
     document.getElementById('save-custom-ex-btn')?.addEventListener('click', () => {
       const nameEl = document.getElementById('custom-ex-name');
       const iconEl = document.getElementById('custom-ex-icon');
+      const catEl = document.getElementById('custom-ex-category');
       const typeEl = document.querySelector('input[name="custom-ex-type"]:checked');
 
       const name = (nameEl?.value || '').trim();
@@ -1649,6 +1882,7 @@
       const payload = {
         name,
         icon: iconEl?.value || 'custom_flame',
+        categoryKey: catEl?.value || state.customCategoryKey || 'strength',
         recordType: typeEl?.value || Models.RECORD_TYPES.SETS,
       };
 

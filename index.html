@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css?v=20261112_1" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261112_2" />
   </head>
   <body>
     <div class="app-shell">
@@ -149,6 +149,18 @@
           <!-- 핵심 요약 KPI 4종 -->
           <div id="stats-kpi-grid" class="kpi-grid"></div>
 
+          <!-- 5대 운동 카테고리 밸런스 원형 레이더 그래프 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">BALANCE</span>
+                <span>5대 운동 밸런스</span>
+              </div>
+              <span id="radar-period-goal-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700"></span>
+            </div>
+            <div id="stats-radar-container" class="radar-section"></div>
+          </div>
+
           <!-- 기간별 운동 추이 그래프 -->
           <div class="card">
             <div class="card-header">
@@ -229,7 +241,12 @@
         <div id="custom-ex-modal-title" class="card-title">나만의 운동 종목 추가</div>
         <div class="field-group">
           <label class="field-label" for="custom-ex-name">운동 이름</label>
-          <input type="text" id="custom-ex-name" class="text-input" placeholder="예: 벤치프레스, 천국의 계단, 수영" maxlength="20" />
+          <input type="text" id="custom-ex-name" class="text-input" placeholder="예: 벤치프레스, 스트레칭, 수영" maxlength="20" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">운동 카테고리 (5대 구분)</label>
+          <div id="custom-category-picker" class="category-picker-grid"></div>
+          <input type="hidden" id="custom-ex-category" value="strength" />
         </div>
         <div class="field-group">
           <label class="field-label">벡터 아이콘 선택</label>
@@ -260,10 +277,10 @@
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js?v=20261111_7"></script>
-    <script src="./js/models.js?v=20261111_7"></script>
-    <script src="./js/repository.js?v=20261111_7"></script>
-    <script src="./js/stats.js?v=20261111_7"></script>
-    <script src="./js/app.js?v=20261112_1"></script>
+    <script src="./js/icons.js?v=20261112_2"></script>
+    <script src="./js/models.js?v=20261112_2"></script>
+    <script src="./js/repository.js?v=20261112_2"></script>
+    <script src="./js/stats.js?v=20261112_2"></script>
+    <script src="./js/app.js?v=20261112_2"></script>
   </body>
 </html>

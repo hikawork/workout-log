@@ -16,6 +16,52 @@ window.WorkoutModels = (function () {
   };
 
   /**
+   * 5대 운동 카테고리 정의 (원형 레이더 차트 축 순서)
+   */
+  const EXERCISE_CATEGORIES = [
+    {
+      key: 'cardio',
+      label: '유산소',
+      shortLabel: '유산소',
+      icon: '🏃',
+      color: '#38bdf8',
+      desc: '달리기·자전거·걷기',
+    },
+    {
+      key: 'strength',
+      label: '근력',
+      shortLabel: '근력',
+      icon: '💪',
+      color: '#a3e635',
+      desc: '웨이트·맨몸 근력',
+    },
+    {
+      key: 'core',
+      label: '코어·밸런스',
+      shortLabel: '코어',
+      icon: '🧘',
+      color: '#a78bfa',
+      desc: '플랭크·복근·균형',
+    },
+    {
+      key: 'flexibility',
+      label: '유연성·회복',
+      shortLabel: '유연성',
+      icon: '🌿',
+      color: '#34d399',
+      desc: '스트레칭·요가·폼롤러',
+    },
+    {
+      key: 'sports',
+      label: '스포츠·HIIT',
+      shortLabel: '스포츠·HIIT',
+      icon: '⚡',
+      color: '#fb923c',
+      desc: '버피·구기·고강도',
+    },
+  ];
+
+  /**
    * 기본 제공 운동 종목 목록
    */
   const DEFAULT_EXERCISES = [
@@ -24,6 +70,7 @@ window.WorkoutModels = (function () {
       name: '달리기',
       icon: '🏃',
       category: '유산소',
+      categoryKey: 'cardio',
       recordType: RECORD_TYPES.TIME,
       hasDistance: true,
       defaultMinutes: 30,
@@ -33,7 +80,8 @@ window.WorkoutModels = (function () {
       id: 'squat',
       name: '스쿼트',
       icon: '🦵',
-      category: '하체/근력',
+      category: '근력',
+      categoryKey: 'strength',
       recordType: RECORD_TYPES.SETS,
       hasWeight: true,
       defaultReps: 15,
@@ -45,6 +93,7 @@ window.WorkoutModels = (function () {
       name: '자전거',
       icon: '🚴',
       category: '유산소',
+      categoryKey: 'cardio',
       recordType: RECORD_TYPES.TIME,
       hasDistance: true,
       defaultMinutes: 40,
@@ -54,7 +103,8 @@ window.WorkoutModels = (function () {
       id: 'weight_training',
       name: '근육운동',
       icon: '🏋️',
-      category: '웨이트',
+      category: '근력',
+      categoryKey: 'strength',
       recordType: RECORD_TYPES.SETS,
       hasWeight: true,
       defaultReps: 12,
@@ -65,7 +115,8 @@ window.WorkoutModels = (function () {
       id: 'pushup',
       name: '팔굽혀펴기',
       icon: '💪',
-      category: '상체/맨몸',
+      category: '근력',
+      categoryKey: 'strength',
       recordType: RECORD_TYPES.SETS,
       hasWeight: false,
       defaultReps: 15,
@@ -77,6 +128,7 @@ window.WorkoutModels = (function () {
       name: '걷기/산책',
       icon: '🚶',
       category: '유산소',
+      categoryKey: 'cardio',
       recordType: RECORD_TYPES.TIME,
       hasDistance: true,
       defaultMinutes: 45,
@@ -86,7 +138,8 @@ window.WorkoutModels = (function () {
       id: 'pullup',
       name: '턱걸이',
       icon: '🤸',
-      category: '상체/맨몸',
+      category: '근력',
+      categoryKey: 'strength',
       recordType: RECORD_TYPES.SETS,
       hasWeight: true,
       defaultReps: 8,
@@ -97,13 +150,49 @@ window.WorkoutModels = (function () {
       id: 'plank',
       name: '플랭크',
       icon: '🧘',
-      category: '코어',
+      category: '코어·밸런스',
+      categoryKey: 'core',
       recordType: RECORD_TYPES.TIME,
       hasDistance: false,
       defaultMinutes: 5,
       color: '#6366f1',
     },
   ];
+
+  function getCategoryMeta(categoryKey) {
+    return EXERCISE_CATEGORIES.find((c) => c.key === categoryKey) || EXERCISE_CATEGORIES[0];
+  }
+
+  /**
+   * 종목 또는 로그 객체에서 5대 카테고리 키('cardio' | 'strength' | 'core' | 'flexibility' | 'sports') 추론
+   */
+  function resolveCategoryKey(item, allExercises = []) {
+    if (!item) return 'strength';
+    const validKeys = new Set(EXERCISE_CATEGORIES.map((c) => c.key));
+
+    if (item.categoryKey && validKeys.has(item.categoryKey)) {
+      return item.categoryKey;
+    }
+
+    // 로그인 경우 연결된 종목에서 먼저 탐색
+    if (item.exerciseId && Array.isArray(allExercises) && allExercises.length > 0) {
+      const matchedEx = allExercises.find((e) => e.id === item.exerciseId);
+      if (matchedEx) {
+        return resolveCategoryKey(matchedEx, []);
+      }
+    }
+
+    const catText = `${item.category || ''} ${item.name || item.exerciseName || ''}`;
+    if (/코어|밸런스|플랭크|복근|데드버그/.test(catText)) return 'core';
+    if (/유연|회복|스트레칭|요가|필라테스|폼롤러|모빌리티/.test(catText)) return 'flexibility';
+    if (/스포츠|HIIT|인터벌|버피|구기|배드민턴|테니스|축구|농구|등산|수영|복싱|줄넘기/.test(catText))
+      return 'sports';
+    if (/유산소|달리기|러닝|자전거|걷기|산책|사이클/.test(catText)) return 'cardio';
+    if (/근력|웨이트|하체|상체|맨몸|스쿼트|팔굽|턱걸이|벤치|데드/.test(catText))
+      return 'strength';
+
+    return item.recordType === RECORD_TYPES.TIME ? 'cardio' : 'strength';
+  }
 
   /**
    * 날짜 객체를 YYYY-MM-DD 문자열로 변환 (로컬 시간대 기준)
@@ -170,6 +259,7 @@ window.WorkoutModels = (function () {
       exerciseId: params.exerciseId,
       exerciseName: params.exerciseName,
       exerciseIcon: params.exerciseIcon || '🔥',
+      categoryKey: params.categoryKey || null,
       recordType,
       // 시간 중심 기록 필드 (분 + 초)
       minutes: normMinutes,
@@ -214,7 +304,10 @@ window.WorkoutModels = (function () {
 
   return {
     RECORD_TYPES,
+    EXERCISE_CATEGORIES,
     DEFAULT_EXERCISES,
+    getCategoryMeta,
+    resolveCategoryKey,
     formatDateKey,
     formatKoreanDate,
     formatDuration,
