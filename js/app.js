@@ -608,10 +608,11 @@
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
-              ${[0, 1, 5, 15, 30, 60]
+              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="minutes">초기화</button>
+              ${[1, 5, 15, 30, 60]
                 .map(
                   (m) =>
-                    `<button type="button" class="preset-btn" data-preset-field="minutes" data-preset-val="${m}">${m}분</button>`
+                    `<button type="button" class="preset-btn" data-preset-field="minutes" data-preset-val="${m}">+${m}분</button>`
                 )
                 .join('')}
             </div>
@@ -628,10 +629,11 @@
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="10">+10</button>
             </div>
             <div class="preset-chips">
-              ${[0, 15, 30, 45, 50]
+              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="seconds">초기화</button>
+              ${[15, 30, 45, 50]
                 .map(
                   (s) =>
-                    `<button type="button" class="preset-btn" data-preset-field="seconds" data-preset-val="${s}">${s}초</button>`
+                    `<button type="button" class="preset-btn" data-preset-field="seconds" data-preset-val="${s}">+${s}초</button>`
                 )
                 .join('')}
             </div>
@@ -648,6 +650,7 @@
           <div class="field-group">
             <div class="field-label">
               <span>이동 거리 (선택사항)</span>
+              <button type="button" class="field-reset-btn" data-reset-field="distanceKm">초기화</button>
             </div>
             <div class="number-input-wrap">
               <input type="number" inputmode="decimal" id="input-distance" class="number-input" step="0.1" min="0" placeholder="0.0" value="${state.form.distanceKm}" />
@@ -667,16 +670,17 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-reps" class="number-input" min="1" max="500" value="${state.form.reps}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-reps" class="number-input" min="0" max="500" value="${state.form.reps}" />
                 <span class="unit-suffix">회</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
+              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="reps">초기화</button>
               ${[8, 10, 12, 15, 20, 30]
                 .map(
                   (r) =>
-                    `<button type="button" class="preset-btn" data-preset-field="reps" data-preset-val="${r}">${r}회</button>`
+                    `<button type="button" class="preset-btn" data-preset-field="reps" data-preset-val="${r}">+${r}회</button>`
                 )
                 .join('')}
             </div>
@@ -687,16 +691,17 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-sets" class="number-input" min="1" max="50" value="${state.form.sets}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-sets" class="number-input" min="0" max="50" value="${state.form.sets}" />
                 <span class="unit-suffix">SET</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
+              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="sets">초기화</button>
               ${[1, 3, 4, 5, 6]
                 .map(
                   (s) =>
-                    `<button type="button" class="preset-btn" data-preset-field="sets" data-preset-val="${s}">${s}세트</button>`
+                    `<button type="button" class="preset-btn" data-preset-field="sets" data-preset-val="${s}">+${s}세트</button>`
                 )
                 .join('')}
             </div>
@@ -713,6 +718,7 @@
           <div class="field-group">
             <div class="field-label">
               <span>중량 추가 (선택사항 · 맨몸이면 비워두세요)</span>
+              <button type="button" class="field-reset-btn" data-reset-field="weightKg">초기화</button>
             </div>
             <div class="number-input-wrap">
               <input type="number" inputmode="decimal" id="input-weight" class="number-input" step="0.5" min="0" placeholder="0" value="${state.form.weightKg}" />
@@ -741,7 +747,10 @@
       ${fieldsHtml}
 
       <div class="field-group">
-        <div class="field-label"><span>운동 메모 (선택)</span></div>
+        <div class="field-label">
+          <span>운동 메모 (선택)</span>
+          <button type="button" class="field-reset-btn" data-reset-field="note">초기화</button>
+        </div>
         <input type="text" id="input-note" class="text-input" maxlength="80" placeholder="오늘의 루틴이나 컨디션을 남겨보세요" value="${escapeHtml(state.form.note)}" />
       </div>
 
@@ -1284,8 +1293,8 @@
     if (minEl) state.form.minutes = Math.max(0, Math.floor(Number(minEl.value) || 0));
     if (secEl) state.form.seconds = Math.max(0, Math.floor(Number(secEl.value) || 0));
     if (distEl) state.form.distanceKm = distEl.value;
-    if (repsEl) state.form.reps = Math.max(1, Number(repsEl.value) || 1);
-    if (setsEl) state.form.sets = Math.max(1, Number(setsEl.value) || 1);
+    if (repsEl) state.form.reps = Math.max(0, Math.floor(Number(repsEl.value) || 0));
+    if (setsEl) state.form.sets = Math.max(0, Math.floor(Number(setsEl.value) || 0));
     if (weightEl) state.form.weightKg = weightEl.value;
     if (noteEl) state.form.note = noteEl.value;
   }
@@ -1305,6 +1314,14 @@
       (Number(state.form.seconds) || 0) <= 0
     ) {
       alert('운동 시간(분 또는 초)을 1초 이상 입력해 주세요.');
+      return;
+    }
+
+    if (
+      ex.recordType !== Models.RECORD_TYPES.TIME &&
+      ((Number(state.form.reps) || 0) <= 0 || (Number(state.form.sets) || 0) <= 0)
+    ) {
+      alert('1세트당 횟수와 세트 수를 1 이상 입력해 주세요.');
       return;
     }
 
@@ -1703,7 +1720,20 @@
           state.form.minutes = Math.floor(totalSec / 60);
           state.form.seconds = totalSec % 60;
         } else {
-          state.form[field] = Math.max(1, (Number(state.form[field]) || 1) + delta);
+          state.form[field] = Math.max(0, (Number(state.form[field]) || 0) + delta);
+        }
+        renderInputForm();
+        return;
+      }
+
+      const resetBtn = e.target.closest('[data-reset-field]');
+      if (resetBtn) {
+        syncFormFromDOM();
+        const field = resetBtn.dataset.resetField;
+        if (field === 'distanceKm' || field === 'weightKg' || field === 'note') {
+          state.form[field] = '';
+        } else {
+          state.form[field] = 0;
         }
         renderInputForm();
         return;
@@ -1713,8 +1743,18 @@
       if (presetBtn) {
         syncFormFromDOM();
         const field = presetBtn.dataset.presetField;
-        const val = Number(presetBtn.dataset.presetVal);
-        state.form[field] = Number.isNaN(val) ? 0 : val;
+        const val = Number(presetBtn.dataset.presetVal) || 0;
+        if (field === 'seconds') {
+          let totalSec =
+            Math.max(0, Number(state.form.minutes) || 0) * 60 +
+            Math.max(0, Number(state.form.seconds) || 0) +
+            val;
+          totalSec = Math.max(0, totalSec);
+          state.form.minutes = Math.floor(totalSec / 60);
+          state.form.seconds = totalSec % 60;
+        } else {
+          state.form[field] = Math.max(0, (Number(state.form[field]) || 0) + val);
+        }
         renderInputForm();
         return;
       }
