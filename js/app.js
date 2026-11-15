@@ -675,7 +675,6 @@
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
-              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="reps">초기화</button>
               ${[8, 10, 12, 15, 20, 30]
                 .map(
                   (r) =>
@@ -696,7 +695,6 @@
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
-              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="sets">초기화</button>
               ${[1, 3, 4, 5, 6]
                 .map(
                   (s) =>
@@ -707,8 +705,9 @@
           </div>
         </div>
 
-        <div class="volume-preview" id="sets-volume-preview">
-          <span>TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${totalReps}회</strong></span>
+        <div class="volume-preview volume-preview-with-reset" id="sets-volume-preview">
+          <span id="sets-volume-text">TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${totalReps}회</strong></span>
+          <button type="button" class="field-reset-btn" data-reset-field="setsAndReps">초기화</button>
         </div>
 
         ${
@@ -1732,6 +1731,9 @@
         if (field === 'time') {
           state.form.minutes = 0;
           state.form.seconds = 0;
+        } else if (field === 'setsAndReps') {
+          state.form.reps = 0;
+          state.form.sets = 0;
         } else if (field === 'distanceKm' || field === 'weightKg' || field === 'note') {
           state.form[field] = '';
         } else {
@@ -1775,10 +1777,10 @@
     inputSection?.addEventListener('input', (e) => {
       if (e.target.id === 'input-reps' || e.target.id === 'input-sets') {
         syncFormFromDOM();
-        const preview = document.getElementById('sets-volume-preview');
-        if (preview) {
+        const volumeTextEl = document.getElementById('sets-volume-text');
+        if (volumeTextEl) {
           const total = (Number(state.form.reps) || 0) * (Number(state.form.sets) || 0);
-          preview.innerHTML = `<span>TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${total}회</strong></span>`;
+          volumeTextEl.innerHTML = `TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${total}회</strong>`;
         }
       } else if (e.target.id === 'input-minutes' || e.target.id === 'input-seconds') {
         syncFormFromDOM();
