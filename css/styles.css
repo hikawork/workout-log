@@ -1282,6 +1282,14 @@ body {
   font-size: 15px;
 }
 
+.volume-preview-with-reset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
 .text-input {
   width: 100%;
   height: 42px;

@@ -608,7 +608,6 @@
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="1">+</button>
             </div>
             <div class="preset-chips">
-              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="minutes">초기화</button>
               ${[1, 5, 15, 30, 60]
                 .map(
                   (m) =>
@@ -629,7 +628,6 @@
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="10">+10</button>
             </div>
             <div class="preset-chips">
-              <button type="button" class="preset-btn preset-reset-btn" data-reset-field="seconds">초기화</button>
               ${[15, 30, 45, 50]
                 .map(
                   (s) =>
@@ -640,8 +638,9 @@
           </div>
         </div>
 
-        <div class="volume-preview" id="time-duration-preview">
-          <span>TOTAL TIME · 총 운동 시간 = <strong>${durationPreviewText}</strong></span>
+        <div class="volume-preview volume-preview-with-reset" id="time-duration-preview">
+          <span id="time-duration-text">TOTAL TIME · 총 운동 시간 = <strong>${durationPreviewText}</strong></span>
+          <button type="button" class="field-reset-btn" data-reset-field="time">초기화</button>
         </div>
 
         ${
@@ -1730,7 +1729,10 @@
       if (resetBtn) {
         syncFormFromDOM();
         const field = resetBtn.dataset.resetField;
-        if (field === 'distanceKm' || field === 'weightKg' || field === 'note') {
+        if (field === 'time') {
+          state.form.minutes = 0;
+          state.form.seconds = 0;
+        } else if (field === 'distanceKm' || field === 'weightKg' || field === 'note') {
           state.form[field] = '';
         } else {
           state.form[field] = 0;
@@ -1780,10 +1782,10 @@
         }
       } else if (e.target.id === 'input-minutes' || e.target.id === 'input-seconds') {
         syncFormFromDOM();
-        const preview = document.getElementById('time-duration-preview');
-        if (preview) {
+        const durationTextEl = document.getElementById('time-duration-text');
+        if (durationTextEl) {
           const durationText = Models.formatDuration(state.form.minutes, state.form.seconds);
-          preview.innerHTML = `<span>TOTAL TIME · 총 운동 시간 = <strong>${durationText}</strong></span>`;
+          durationTextEl.innerHTML = `TOTAL TIME · 총 운동 시간 = <strong>${durationText}</strong>`;
         }
       }
     });
