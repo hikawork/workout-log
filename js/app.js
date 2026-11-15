@@ -407,19 +407,23 @@
     if (!bar) return;
 
     const info = Repo.getFileSyncStatus();
-    bar.classList.remove('connected', 'needs-perm');
+    bar.classList.remove('connected', 'needs-perm', 'disconnected');
 
     if (info.status === 'connected') {
       bar.classList.add('connected');
-      const savedText = info.lastSavedAt ? ` · ${info.lastSavedAt} 저장됨` : '';
+      const savedText = info.lastSavedAt ? `최근 저장 ${info.lastSavedAt}` : '실시간 자동저장 활성';
       bar.innerHTML = `
-        <div class="sync-info-group">
-          <span class="sync-dot"></span>
-          <span>파일 자동저장 켜짐 · <strong>${escapeHtml(info.fileName)}</strong>${savedText}</span>
+        <div class="sync-status-header">
+          <span class="sync-status-pill connected">
+            <span class="sync-dot"></span>
+            <span>로컬 파일 사용 중</span>
+          </span>
+          <span class="sync-file-pill" title="현재 연결된 로컬 파일">📄 ${escapeHtml(info.fileName)}</span>
+          <span class="sync-saved-time">${savedText}</span>
         </div>
         <div class="sync-btn-group">
           <button type="button" class="sync-action-btn primary" data-sync-act="save-backup-as" title="현재 기록을 별도 이름의 JSON 파일로 백업 저장">💾 다른 이름으로 백업</button>
-          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="저장된 파일 불러오기">📂 파일 열기</button>
+          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="저장된 파일 불러오기">📂 파일 변경</button>
           <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 해제">해제</button>
         </div>
       `;
@@ -429,9 +433,12 @@
     if (info.status === 'needs_permission') {
       bar.classList.add('needs-perm');
       bar.innerHTML = `
-        <div class="sync-info-group">
-          <span class="sync-dot"></span>
-          <span>이전 파일(<strong>${escapeHtml(info.fileName)}</strong>)에 자동저장을 이어갈까요?</span>
+        <div class="sync-status-header">
+          <span class="sync-status-pill needs-perm">
+            <span class="sync-dot"></span>
+            <span>로컬 파일 재연결 필요</span>
+          </span>
+          <span class="sync-file-pill">📄 ${escapeHtml(info.fileName)}</span>
         </div>
         <div class="sync-btn-group">
           <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
@@ -442,11 +449,15 @@
       return;
     }
 
-    // 기본: disconnected (PC 및 모바일 모두 동일한 '+ 새 파일 연결' / '📂 기존 파일 열기' / '💾 다른 이름으로 백업' 제공)
+    // 기본: disconnected (브라우저 임시 저장 상태)
+    bar.classList.add('disconnected');
     bar.innerHTML = `
-      <div class="sync-info-group">
-        <span class="sync-dot"></span>
-        <span>💾 내 기기 파일에 자동저장 연결 (캐시 삭제 안심)</span>
+      <div class="sync-status-header">
+        <span class="sync-status-pill disconnected">
+          <span class="sync-dot"></span>
+          <span>브라우저 임시 저장 중</span>
+        </span>
+        <span class="sync-saved-time">로컬 파일에 연결하면 캐시 삭제에도 안전해요</span>
       </div>
       <div class="sync-btn-group">
         <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
