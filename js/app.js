@@ -352,22 +352,15 @@
 
   /**
    * 특정 날짜에서 운동 종목 선택 시:
-   * - 해당 날짜에 이미 같은 종목의 기록이 있으면 자동으로 수정 모드로 불러옴
-   * - 없으면 신규 등록 기본값 적용
+   * - 같은 날 여러 번 운동할 수 있도록 항상 신규 등록 모드로 폼 초기화
+   *   (기존 기록 수정은 아래 기록 목록에서 해당 항목 또는 '수정' 버튼을 클릭)
    */
   function selectExerciseForDate(exerciseId) {
     const allEx = Repo.getAllExercises();
     const validEx = allEx.find((e) => e.id === exerciseId) || allEx[0];
     const targetId = validEx ? validEx.id : exerciseId;
 
-    const dayLogs = Repo.getLogsByDate(state.selectedDate);
-    const existingLog = dayLogs.find((l) => l.exerciseId === targetId);
-
-    if (existingLog) {
-      loadLogIntoForm(existingLog);
-    } else {
-      applyDefaultFormForExercise(targetId, false);
-    }
+    applyDefaultFormForExercise(targetId, false);
   }
 
   /**
@@ -518,19 +511,23 @@
 
     const exercises = Repo.getAllExercises();
     const dayLogs = Repo.getLogsByDate(state.selectedDate);
-    const recordedExerciseIds = new Set(dayLogs.map((l) => l.exerciseId));
+    const recordedCounts = {};
+    dayLogs.forEach((l) => {
+      recordedCounts[l.exerciseId] = (recordedCounts[l.exerciseId] || 0) + 1;
+    });
     const hasDeletedDefaults = Repo.getDeletedDefaultIds().length > 0;
 
     const html = exercises
       .map((ex) => {
         const isSelected = ex.id === state.selectedExerciseId;
-        const isRecorded = recordedExerciseIds.has(ex.id);
+        const recordedCount = recordedCounts[ex.id] || 0;
+        const isRecorded = recordedCount > 0;
         const catMeta = Models.getCategoryMeta(Models.resolveCategoryKey(ex));
         const unitLabel = ex.recordType === Models.RECORD_TYPES.TIME ? '분·초' : '세트';
         const typeLabel = `${catMeta.shortLabel} · ${unitLabel}`;
         const recordedBadge =
           !state.isManagingExercises && isRecorded
-            ? `<span class="recorded-dot-badge">DONE</span>`
+            ? `<span class="recorded-dot-badge">${recordedCount > 1 ? `DONE ×${recordedCount}` : 'DONE'}</span>`
             : '';
         const editBtn = state.isManagingExercises
           ? `<button type="button" class="edit-custom-ex-btn" data-edit-ex="${ex.id}" title="${escapeHtml(ex.name)} 종목 수정">✎</button>`
@@ -1354,8 +1351,8 @@
       renderAll();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      const created = Repo.addLog(payload);
-      loadLogIntoForm(created);
+      Repo.addLog(payload);
+      applyDefaultFormForExercise(ex.id, false);
       renderAll();
       showToast(`${ex.name} 기록이 등록되었습니다!`);
     }
