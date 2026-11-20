@@ -75,11 +75,11 @@
     selectedExerciseId: 'running',
     editingLogId: null,
     form: {
-      minutes: 30,
-      seconds: 0,
+      minutes: '',
+      seconds: '',
       distanceKm: '',
-      reps: 15,
-      sets: 3,
+      reps: '',
+      sets: '',
       weightKg: '',
       note: '',
     },
@@ -337,12 +337,12 @@
     }
     state.selectedExerciseId = ex.id;
     if (ex.recordType === Models.RECORD_TYPES.TIME) {
-      state.form.minutes = ex.defaultMinutes !== undefined ? ex.defaultMinutes : 30;
-      state.form.seconds = ex.defaultSeconds || 0;
+      state.form.minutes = '';
+      state.form.seconds = '';
       state.form.distanceKm = '';
     } else {
-      state.form.reps = ex.defaultReps || 15;
-      state.form.sets = ex.defaultSets || 3;
+      state.form.reps = '';
+      state.form.sets = '';
       state.form.weightKg = '';
     }
     if (!keepEditingId) {
@@ -599,7 +599,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-minutes" class="number-input" min="0" max="600" value="${state.form.minutes}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-minutes" class="number-input" min="0" max="600" placeholder="0" value="${state.form.minutes}" />
                 <span class="unit-suffix">분</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="minutes" data-step-delta="1">+</button>
@@ -619,7 +619,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="-10">-10</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-seconds" class="number-input" min="0" max="59" value="${state.form.seconds}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-seconds" class="number-input" min="0" max="59" placeholder="0" value="${state.form.seconds}" />
                 <span class="unit-suffix">초</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="seconds" data-step-delta="10">+10</button>
@@ -666,7 +666,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-reps" class="number-input" min="0" max="500" value="${state.form.reps}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-reps" class="number-input" min="0" max="500" placeholder="0" value="${state.form.reps}" />
                 <span class="unit-suffix">회</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="reps" data-step-delta="1">+</button>
@@ -686,7 +686,7 @@
             <div class="stepper-row">
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="-1">-</button>
               <div class="number-input-wrap">
-                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-sets" class="number-input" min="0" max="50" value="${state.form.sets}" />
+                <input type="number" inputmode="numeric" pattern="[0-9]*" id="input-sets" class="number-input" min="0" max="50" placeholder="0" value="${state.form.sets}" />
                 <span class="unit-suffix">SET</span>
               </div>
               <button type="button" class="stepper-btn" data-step-field="sets" data-step-delta="1">+</button>
@@ -703,7 +703,7 @@
         </div>
 
         <div class="volume-preview volume-preview-with-reset" id="sets-volume-preview">
-          <span id="sets-volume-text">TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${totalReps}회</strong></span>
+          <span id="sets-volume-text">TOTAL VOLUME · ${Number(state.form.reps) || 0}회 × ${Number(state.form.sets) || 0}세트 = <strong>${totalReps}회</strong></span>
           <button type="button" class="field-reset-btn" data-reset-field="setsAndReps">초기화</button>
         </div>
 
@@ -1285,11 +1285,15 @@
     const weightEl = document.getElementById('input-weight');
     const noteEl = document.getElementById('input-note');
 
-    if (minEl) state.form.minutes = Math.max(0, Math.floor(Number(minEl.value) || 0));
-    if (secEl) state.form.seconds = Math.max(0, Math.floor(Number(secEl.value) || 0));
+    if (minEl)
+      state.form.minutes = minEl.value === '' ? '' : Math.max(0, Math.floor(Number(minEl.value) || 0));
+    if (secEl)
+      state.form.seconds = secEl.value === '' ? '' : Math.max(0, Math.floor(Number(secEl.value) || 0));
     if (distEl) state.form.distanceKm = distEl.value;
-    if (repsEl) state.form.reps = Math.max(0, Math.floor(Number(repsEl.value) || 0));
-    if (setsEl) state.form.sets = Math.max(0, Math.floor(Number(setsEl.value) || 0));
+    if (repsEl)
+      state.form.reps = repsEl.value === '' ? '' : Math.max(0, Math.floor(Number(repsEl.value) || 0));
+    if (setsEl)
+      state.form.sets = setsEl.value === '' ? '' : Math.max(0, Math.floor(Number(setsEl.value) || 0));
     if (weightEl) state.form.weightKg = weightEl.value;
     if (noteEl) state.form.note = noteEl.value;
   }
@@ -1326,11 +1330,11 @@
       exerciseName: ex.name,
       exerciseIcon: ex.icon,
       recordType: ex.recordType,
-      minutes: state.form.minutes,
-      seconds: state.form.seconds,
+      minutes: Number(state.form.minutes) || 0,
+      seconds: Number(state.form.seconds) || 0,
       distanceKm: state.form.distanceKm,
-      reps: state.form.reps,
-      sets: state.form.sets,
+      reps: Number(state.form.reps) || 0,
+      sets: Number(state.form.sets) || 0,
       weightKg: state.form.weightKg,
       note: state.form.note,
     };
@@ -1726,15 +1730,13 @@
         syncFormFromDOM();
         const field = resetBtn.dataset.resetField;
         if (field === 'time') {
-          state.form.minutes = 0;
-          state.form.seconds = 0;
+          state.form.minutes = '';
+          state.form.seconds = '';
         } else if (field === 'setsAndReps') {
-          state.form.reps = 0;
-          state.form.sets = 0;
-        } else if (field === 'distanceKm' || field === 'weightKg' || field === 'note') {
-          state.form[field] = '';
+          state.form.reps = '';
+          state.form.sets = '';
         } else {
-          state.form[field] = 0;
+          state.form[field] = '';
         }
         renderInputForm();
         return;
@@ -1776,8 +1778,10 @@
         syncFormFromDOM();
         const volumeTextEl = document.getElementById('sets-volume-text');
         if (volumeTextEl) {
-          const total = (Number(state.form.reps) || 0) * (Number(state.form.sets) || 0);
-          volumeTextEl.innerHTML = `TOTAL VOLUME · ${state.form.reps}회 × ${state.form.sets}세트 = <strong>${total}회</strong>`;
+          const repsVal = Number(state.form.reps) || 0;
+          const setsVal = Number(state.form.sets) || 0;
+          const total = repsVal * setsVal;
+          volumeTextEl.innerHTML = `TOTAL VOLUME · ${repsVal}회 × ${setsVal}세트 = <strong>${total}회</strong>`;
         }
       } else if (e.target.id === 'input-minutes' || e.target.id === 'input-seconds') {
         syncFormFromDOM();

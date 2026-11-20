@@ -1167,6 +1167,12 @@ body {
   outline: none;
 }
 
+.number-input::placeholder {
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+  opacity: 0.5;
+}
+
 .unit-suffix {
   position: static;
   flex-shrink: 0;
