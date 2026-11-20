@@ -87,9 +87,6 @@
     calendarMonth: new Date().getMonth(),
     calendarSelectedDate: Models.formatDateKey(new Date()),
     statsPeriod: 'month', // 'week' | 'month' | 'days30' | 'all'
-    statsView: 'overview', // 'overview' | 'exercise'
-    statsExerciseId: 'ALL', // 'ALL' | exerciseId
-    statsExerciseSort: 'count', // 'count' | 'volume' | 'name'
     customIconKey: 'custom_flame',
     customCategoryKey: 'strength',
     draftBalanceKeys: [],
@@ -1148,430 +1145,6 @@
   }
 
   /**
-   * 추이 막대 차트 버킷 배열을 HTML 문자열로 렌더링
-   */
-  function renderTrendBucketsHtml(buckets) {
-    return buckets
-      .map((b) => {
-        const timePart =
-          b.totalSeconds > 0
-            ? b.minutes > 0
-              ? `${b.minutes}분`
-              : `${b.seconds}초`
-            : '';
-        const valLabel =
-          b.count === 0
-            ? '-'
-            : timePart && b.sets > 0
-            ? `${timePart}/${b.sets}셋`
-            : timePart
-            ? timePart
-            : `${b.sets}세트`;
-        return `
-          <div class="trend-col">
-            <span class="trend-val">${valLabel}</span>
-            <div class="trend-bar-wrap">
-              <div class="trend-bar ${b.count > 0 ? 'active' : ''}" style="height: ${b.heightPercent}%"></div>
-            </div>
-            <span class="trend-day ${b.isCurrent ? 'today' : ''}">${b.label}</span>
-            <span style="font-size: 10px; color: var(--text-muted); line-height: 1">${b.subLabel || ''}</span>
-          </div>
-        `;
-      })
-      .join('');
-  }
-
-  /**
-   * 통계 대시보드 > 종목별 통계 서브뷰 렌더링
-   */
-  function renderStatsExerciseView(allLogs, filteredLogs, allExercises, range, summary) {
-    const pickerEl = document.getElementById('stats-ex-picker');
-    const actionEl = document.getElementById('stats-ex-header-action');
-    const contentEl = document.getElementById('stats-ex-detail-content');
-    if (!pickerEl || !contentEl) return;
-
-    // 등록된 종목 + 기록에만 남아있는 과거 종목까지 통합 목록 생성
-    const exMap = new Map();
-    allExercises.forEach((ex) => {
-      exMap.set(ex.id, ex);
-    });
-    allLogs.forEach((log) => {
-      if (!exMap.has(log.exerciseId)) {
-        exMap.set(log.exerciseId, {
-          id: log.exerciseId,
-          name: log.exerciseName,
-          icon: log.exerciseIcon || '🔥',
-          recordType: log.recordType,
-          categoryKey: log.categoryKey,
-        });
-      }
-    });
-
-    const periodCountMap = {};
-    filteredLogs.forEach((l) => {
-      periodCountMap[l.exerciseId] = (periodCountMap[l.exerciseId] || 0) + 1;
-    });
-
-    const totalCountMap = {};
-    allLogs.forEach((l) => {
-      totalCountMap[l.exerciseId] = (totalCountMap[l.exerciseId] || 0) + 1;
-    });
-
-    const pickerExercises = Array.from(exMap.values()).sort((a, b) => {
-      const pDiff = (periodCountMap[b.id] || 0) - (periodCountMap[a.id] || 0);
-      if (pDiff !== 0) return pDiff;
-      return (totalCountMap[b.id] || 0) - (totalCountMap[a.id] || 0);
-    });
-
-    if (state.statsExerciseId !== 'ALL' && !exMap.has(state.statsExerciseId)) {
-      state.statsExerciseId = 'ALL';
-    }
-
-    const allChipHtml = `
-      <button type="button" class="stats-ex-chip ${state.statsExerciseId === 'ALL' ? 'active' : ''}" data-stats-ex-id="ALL">
-        <span>📋 전체 비교</span>
-        <span class="stats-ex-chip-count">${summary.exerciseBreakdown.length}</span>
-      </button>
-    `;
-
-    const exChipsHtml = pickerExercises
-      .map((ex) => {
-        const pCount = periodCountMap[ex.id] || 0;
-        const isActive = state.statsExerciseId === ex.id;
-        return `
-          <button type="button" class="stats-ex-chip ${isActive ? 'active' : ''} ${
-          pCount === 0 ? 'empty-period' : ''
-        }" data-stats-ex-id="${ex.id}">
-            ${Icons.renderExerciseBadge(ex.id, ex.icon, 'sm')}
-            <span>${escapeHtml(ex.name)}</span>
-            ${pCount > 0 ? `<span class="stats-ex-chip-count">${pCount}</span>` : ''}
-          </button>
-        `;
-      })
-      .join('');
-
-    pickerEl.innerHTML = allChipHtml + exChipsHtml;
-
-    if (actionEl) {
-      if (state.statsExerciseId === 'ALL') {
-        const sortOptions = [
-          { key: 'count', label: '횟수순' },
-          { key: 'volume', label: '운동량순' },
-          { key: 'name', label: '이름순' },
-        ];
-        actionEl.innerHTML = `
-          <div class="stats-sort-pills">
-            ${sortOptions
-              .map(
-                (opt) => `
-              <button type="button" class="stats-sort-btn ${
-                  state.statsExerciseSort === opt.key ? 'active' : ''
-                }" data-stats-sort="${opt.key}">${opt.label}</button>
-            `
-              )
-              .join('')}
-          </div>
-        `;
-      } else {
-        actionEl.innerHTML = `
-          <button type="button" class="ex-manage-toggle-btn" data-stats-ex-id="ALL">
-            ← 전체 비교
-          </button>
-        `;
-      }
-    }
-
-    // 1) 전체 종목 비교 모드
-    if (state.statsExerciseId === 'ALL') {
-      if (summary.exerciseBreakdown.length === 0) {
-        contentEl.innerHTML = `
-          <div class="card">
-            <div class="empty-state">
-              <div>선택한 기간(${range.label})에 기록된 운동이 없습니다.<br/>운동을 등록하거나 상단 기간 탭에서 [전체]를 선택해 보세요.</div>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const items = summary.exerciseBreakdown.slice();
-      const getVolumeScore = (it) =>
-        it.recordType === Models.RECORD_TYPES.TIME
-          ? it.totalSeconds / 60
-          : it.totalSets * 5 + it.totalReps * 0.2;
-
-      if (state.statsExerciseSort === 'volume') {
-        items.sort((a, b) => getVolumeScore(b) - getVolumeScore(a));
-      } else if (state.statsExerciseSort === 'name') {
-        items.sort((a, b) => a.exerciseName.localeCompare(b.exerciseName, 'ko'));
-      } else {
-        items.sort((a, b) => b.count - a.count);
-      }
-
-      const maxMetric =
-        state.statsExerciseSort === 'volume'
-          ? Math.max(1, ...items.map((it) => getVolumeScore(it)))
-          : Math.max(1, ...items.map((it) => it.count));
-
-      contentEl.innerHTML = `
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="section-step-pill">COMPARE</span>
-              <span>종목별 운동량 비교 (${range.label})</span>
-            </div>
-            <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700">총 ${items.length}개 종목</span>
-          </div>
-          <div class="stat-ex-list">
-            ${items
-              .map((item) => {
-                const exMeta = exMap.get(item.exerciseId) || item;
-                const catMeta = Models.getCategoryMeta(Models.resolveCategoryKey(exMeta, allExercises));
-                const barPercent =
-                  state.statsExerciseSort === 'volume'
-                    ? Math.max(8, Math.round((getVolumeScore(item) / maxMetric) * 100))
-                    : item.barWidth;
-
-                const metricBadges = [];
-                if (item.recordType === Models.RECORD_TYPES.TIME) {
-                  const totalDur = Models.formatDuration(item.totalMinutes, item.remainSeconds);
-                  const avgDur = Models.formatDuration(
-                    Math.floor(item.avgSeconds / 60),
-                    item.avgSeconds % 60
-                  );
-                  const maxDur = Models.formatDuration(
-                    Math.floor(item.maxSeconds / 60),
-                    item.maxSeconds % 60
-                  );
-                  metricBadges.push(`총 시간 <strong>${totalDur}</strong>`);
-                  metricBadges.push(`평균 <strong>${avgDur}</strong>`);
-                  metricBadges.push(`최장 <strong>${maxDur}</strong>`);
-                  if (item.totalDistanceKm > 0) {
-                    metricBadges.push(
-                      `거리 <strong>${Math.round(item.totalDistanceKm * 10) / 10}km</strong>`
-                    );
-                  }
-                } else {
-                  metricBadges.push(`총 <strong>${item.totalSets}세트</strong>`);
-                  metricBadges.push(`총 <strong>${item.totalReps.toLocaleString()}회</strong>`);
-                  metricBadges.push(`평균 <strong>${item.avgSets}세트</strong>`);
-                  if (item.maxWeightKg > 0) {
-                    metricBadges.push(`최고 <strong>${item.maxWeightKg}kg</strong>`);
-                  }
-                }
-
-                return `
-                  <div class="stat-ex-item stat-ex-clickable" data-stats-ex-id="${item.exerciseId}">
-                    <div class="stat-ex-top">
-                      <span class="stat-ex-name">
-                        ${Icons.renderExerciseBadge(item.exerciseId, item.exerciseIcon, 'sm')}
-                        <span>${escapeHtml(item.exerciseName)}</span>
-                        <span class="stat-ex-cat-pill">${catMeta.shortLabel}</span>
-                      </span>
-                      <span class="stat-ex-count">${item.count}회 · ${item.activeDaysCount}일 (${item.percentage}%)</span>
-                    </div>
-                    <div class="stat-ex-metric-pills">
-                      ${metricBadges.map((b) => `<span class="stat-ex-metric-chip">${b}</span>`).join('')}
-                    </div>
-                    <div class="stat-bar-track">
-                      <div class="stat-bar-fill" style="width: ${barPercent}%"></div>
-                    </div>
-                    <div class="stat-ex-foot">
-                      <span>최근 운동: ${item.lastDate || '-'}</span>
-                      <span class="stat-ex-drill-hint">상세 추이 보기 ›</span>
-                    </div>
-                  </div>
-                `;
-              })
-              .join('')}
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    // 2) 특정 단일 종목 상세 모드
-    const targetEx = exMap.get(state.statsExerciseId);
-    const catMeta = Models.getCategoryMeta(Models.resolveCategoryKey(targetEx, allExercises));
-    const detail = Stats.computeExerciseDetail(
-      allLogs,
-      filteredLogs,
-      state.statsExerciseId,
-      state.statsPeriod
-    );
-    const isTimeMode = targetEx.recordType === Models.RECORD_TYPES.TIME;
-
-    let kpiCardsHtml = '';
-    if (isTimeMode) {
-      const totalDur =
-        detail.totalSeconds > 0
-          ? Models.formatDuration(detail.totalMinutes, detail.remainSeconds)
-          : '0분';
-      const avgDur =
-        detail.avgSeconds > 0
-          ? Models.formatDuration(Math.floor(detail.avgSeconds / 60), detail.avgSeconds % 60)
-          : '0분';
-      const maxDur =
-        detail.maxSeconds > 0
-          ? Models.formatDuration(Math.floor(detail.maxSeconds / 60), detail.maxSeconds % 60)
-          : '0분';
-
-      kpiCardsHtml = `
-        <div class="kpi-card">
-          <span class="kpi-label">ACTIVE DAYS · 수행 일수</span>
-          <span class="kpi-value">${detail.activeDaysCount}일</span>
-          <span class="kpi-sub">${range.label} 총 ${detail.count}건 완료</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">TOTAL TIME · 누적 시간</span>
-          <span class="kpi-value">${totalDur}</span>
-          <span class="kpi-sub">전체 기간 누적 ${detail.overallCount}건</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">AVG / BEST · 평균·최장</span>
-          <span class="kpi-value">${avgDur}</span>
-          <span class="kpi-sub">1회 최장 기록 ${maxDur}</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">${
-            detail.totalDistanceKm > 0 || targetEx.hasDistance
-              ? 'DISTANCE · 누적 거리'
-              : 'RECENT · 최근 운동일'
-          }</span>
-          <span class="kpi-value">${
-            detail.totalDistanceKm > 0 || targetEx.hasDistance
-              ? `${detail.totalDistanceKm}km`
-              : detail.lastDate
-              ? detail.lastDate.slice(5).replace('-', '/')
-              : '-'
-          }</span>
-          <span class="kpi-sub">최근 기록 ${detail.lastDate || '없음'}</span>
-        </div>
-      `;
-    } else {
-      kpiCardsHtml = `
-        <div class="kpi-card">
-          <span class="kpi-label">ACTIVE DAYS · 수행 일수</span>
-          <span class="kpi-value">${detail.activeDaysCount}일</span>
-          <span class="kpi-sub">${range.label} 총 ${detail.count}건 완료</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">TOTAL SETS · 누적 세트</span>
-          <span class="kpi-value">${detail.totalSets}세트</span>
-          <span class="kpi-sub">총 ${detail.totalReps.toLocaleString()}회 볼륨</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">AVG / BEST · 평균·최대</span>
-          <span class="kpi-value">${detail.avgSets}세트</span>
-          <span class="kpi-sub">1회 평균 ${detail.avgReps.toLocaleString()}회 · 최대 ${detail.maxVolumeReps.toLocaleString()}회</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">${
-            detail.maxWeightKg > 0 || targetEx.hasWeight
-              ? 'MAX WEIGHT · 최고 중량'
-              : 'RECENT · 최근 운동일'
-          }</span>
-          <span class="kpi-value">${
-            detail.maxWeightKg > 0 || targetEx.hasWeight
-              ? detail.maxWeightKg > 0
-                ? `${detail.maxWeightKg}kg`
-                : '-'
-              : detail.lastDate
-              ? detail.lastDate.slice(5).replace('-', '/')
-              : '-'
-          }</span>
-          <span class="kpi-sub">전체 누적 ${detail.overallCount}건 · 최근 ${detail.lastDate || '없음'}</span>
-        </div>
-      `;
-    }
-
-    const daysKor = ['일', '월', '화', '수', '목', '금', '토'];
-    const logsHtml =
-      detail.logs.length === 0
-        ? `
-        <div class="empty-state">
-          <div>
-            선택한 기간(${range.label})에 <strong>${escapeHtml(targetEx.name)}</strong> 기록이 없습니다.
-            ${
-              detail.overallCount > 0
-                ? `<br/>전체 기간에는 총 ${detail.overallCount}건의 기록이 있어요 (최근: ${detail.overallLastDate}).`
-                : ''
-            }
-          </div>
-          <button type="button" class="preset-btn" id="stats-go-log-selected-ex-btn" data-log-ex-id="${targetEx.id}" style="margin-top: 10px; font-weight: 800; color: var(--primary); border-color: var(--border-highlight)">
-            + ${escapeHtml(targetEx.name)} 기록하러 가기
-          </button>
-        </div>
-      `
-        : detail.logs
-            .map((log) => {
-              const [y, m, d] = log.date.split('-').map(Number);
-              const dayName = daysKor[new Date(y, m - 1, d).getDay()];
-              return `
-                <div class="log-item stats-ex-log-row">
-                  <div class="log-left">
-                    <span class="stats-log-date-pill">${m}/${d} (${dayName})</span>
-                    <div class="log-info">
-                      <div class="log-metric">${Models.formatLogSummary(log)}</div>
-                      ${log.note ? `<div class="log-note">${escapeHtml(log.note)}</div>` : ''}
-                    </div>
-                  </div>
-                  <div class="log-actions">
-                    <button type="button" class="icon-btn" data-ex-log-edit-id="${log.id}">수정</button>
-                  </div>
-                </div>
-              `;
-            })
-            .join('');
-
-    contentEl.innerHTML = `
-      <div class="card">
-        <div class="selected-exercise-banner" style="margin-bottom: 0;">
-          <div class="selected-ex-title">
-            ${Icons.renderExerciseBadge(targetEx.id, targetEx.icon, 'md')}
-            <div>
-              <div>${escapeHtml(targetEx.name)}</div>
-              <div style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary);">
-                ${catMeta.icon} ${catMeta.label} · ${range.label}
-              </div>
-            </div>
-          </div>
-          <span class="record-mode-badge ${isTimeMode ? 'time' : 'sets'}">
-            ${isTimeMode ? 'TIME' : 'SETS × REPS'}
-          </span>
-        </div>
-      </div>
-
-      <div class="kpi-grid">
-        ${kpiCardsHtml}
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">${escapeHtml(targetEx.name)} · ${detail.trend.chartTitle.replace(/^📈\s*/, '')}</div>
-          <span style="font-size: 11px; color: var(--text-muted); font-weight: 700">${isTimeMode ? '운동 시간' : '세트 수'}</span>
-        </div>
-        <div class="trend-chart">
-          ${renderTrendBucketsHtml(detail.trend.buckets)}
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="section-step-pill">HISTORY</span>
-            <span>${escapeHtml(targetEx.name)} 기록 내역</span>
-          </div>
-          <span class="card-badge">${detail.logs.length}건</span>
-        </div>
-        <div class="log-list">
-          ${logsHtml}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
    * 통계 탭 렌더링
    */
   function renderStatsTab() {
@@ -1581,27 +1154,9 @@
     const filteredLogs = Repo.getLogsByDateRange(range.startDate, range.endDate);
     const summary = Stats.computeSummary(filteredLogs, allLogs);
 
-    document.querySelectorAll('.stats-view-btn').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.statsView === state.statsView);
-    });
-
     document.querySelectorAll('.period-tab-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.period === state.statsPeriod);
     });
-
-    const overviewEl = document.getElementById('stats-view-overview');
-    const exerciseEl = document.getElementById('stats-view-exercise');
-    if (overviewEl) {
-      overviewEl.style.display = state.statsView === 'overview' ? 'flex' : 'none';
-    }
-    if (exerciseEl) {
-      exerciseEl.style.display = state.statsView === 'exercise' ? 'flex' : 'none';
-    }
-
-    if (state.statsView === 'exercise') {
-      renderStatsExerciseView(allLogs, filteredLogs, allExercises, range, summary);
-      return;
-    }
 
     const kpiContainer = document.getElementById('stats-kpi-grid');
     if (kpiContainer) {
@@ -1643,7 +1198,34 @@
       if (trendTitleEl) {
         trendTitleEl.textContent = chartTitle;
       }
-      trendContainer.innerHTML = renderTrendBucketsHtml(buckets);
+      trendContainer.innerHTML = buckets
+        .map((b) => {
+          const timePart =
+            b.totalSeconds > 0
+              ? b.minutes > 0
+                ? `${b.minutes}분`
+                : `${b.seconds}초`
+              : '';
+          const valLabel =
+            b.count === 0
+              ? '-'
+              : timePart && b.sets > 0
+              ? `${timePart}/${b.sets}셋`
+              : timePart
+              ? timePart
+              : `${b.sets}세트`;
+          return `
+            <div class="trend-col">
+              <span class="trend-val">${valLabel}</span>
+              <div class="trend-bar-wrap">
+                <div class="trend-bar ${b.count > 0 ? 'active' : ''}" style="height: ${b.heightPercent}%"></div>
+              </div>
+              <span class="trend-day ${b.isCurrent ? 'today' : ''}">${b.label}</span>
+              <span style="font-size: 10px; color: var(--text-muted); line-height: 1">${b.subLabel || ''}</span>
+            </div>
+          `;
+        })
+        .join('');
     }
 
     const breakdownContainer = document.getElementById('stats-exercise-breakdown');
@@ -1659,25 +1241,25 @@
           .map((item) => {
             let detailText = '';
             if (item.recordType === Models.RECORD_TYPES.TIME) {
-              detailText = `누적 시간 ${Models.formatDuration(item.totalMinutes, item.remainSeconds)} · ${item.activeDaysCount}일 수행`;
+              detailText = `누적 시간 ${Models.formatDuration(item.totalMinutes, item.remainSeconds)}`;
               if (item.totalDistanceKm > 0) {
                 detailText += ` · 누적 거리 ${Math.round(item.totalDistanceKm * 10) / 10}km`;
               }
             } else {
-              detailText = `누적 ${item.totalSets}세트 · 총 ${item.totalReps.toLocaleString()}회 · ${item.activeDaysCount}일 수행`;
+              detailText = `누적 ${item.totalSets}세트 · 총 ${item.totalReps.toLocaleString()}회`;
               if (item.maxWeightKg > 0) {
                 detailText += ` · 최고 중량 ${item.maxWeightKg}kg`;
               }
             }
 
             return `
-              <div class="stat-ex-item stat-ex-clickable" data-drill-ex-id="${item.exerciseId}">
+              <div class="stat-ex-item">
                 <div class="stat-ex-top">
                   <span class="stat-ex-name">
                     ${Icons.renderExerciseBadge(item.exerciseId, item.exerciseIcon, 'sm')}
                     <span>${escapeHtml(item.exerciseName)}</span>
                   </span>
-                  <span class="stat-ex-count">${item.count}회 (${item.percentage}%) ›</span>
+                  <span class="stat-ex-count">${item.count}회 (${item.percentage}%)</span>
                 </div>
                 <div class="stat-ex-detail">${detailText}</div>
                 <div class="stat-bar-track">
@@ -2313,77 +1895,12 @@
       renderAll();
     });
 
-    // 통계 보기 모드 전환 (전체 요약 <-> 종목별 통계)
-    document.querySelectorAll('.stats-view-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        state.statsView = btn.dataset.statsView || 'overview';
-        renderStatsTab();
-      });
-    });
-
     // 통계 기간 필터 버튼
     document.querySelectorAll('.period-tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.statsPeriod = btn.dataset.period;
         renderStatsTab();
       });
-    });
-
-    // 전체 요약 > 종목별 순위 카드에서 종목별 화면으로 이동 / 개별 종목 드릴다운
-    document.getElementById('go-to-ex-stats-btn')?.addEventListener('click', () => {
-      state.statsView = 'exercise';
-      state.statsExerciseId = 'ALL';
-      renderStatsTab();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    document.getElementById('stats-exercise-breakdown')?.addEventListener('click', (e) => {
-      const drillItem = e.target.closest('[data-drill-ex-id]');
-      if (!drillItem) return;
-      state.statsView = 'exercise';
-      state.statsExerciseId = drillItem.dataset.drillExId;
-      renderStatsTab();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // 종목별 통계 화면 내부 인터랙션 (종목 선택, 정렬, 기록 수정/추가 이동)
-    document.getElementById('stats-view-exercise')?.addEventListener('click', (e) => {
-      const exChip = e.target.closest('[data-stats-ex-id]');
-      if (exChip) {
-        state.statsExerciseId = exChip.dataset.statsExId;
-        renderStatsTab();
-        return;
-      }
-
-      const sortBtn = e.target.closest('[data-stats-sort]');
-      if (sortBtn) {
-        state.statsExerciseSort = sortBtn.dataset.statsSort;
-        renderStatsTab();
-        return;
-      }
-
-      const editLogBtn = e.target.closest('[data-ex-log-edit-id]');
-      if (editLogBtn) {
-        const logId = editLogBtn.dataset.exLogEditId;
-        const target = Repo.getAllLogs().find((l) => l.id === logId);
-        if (!target) return;
-        loadLogIntoForm(target);
-        switchTab('log');
-        renderAll();
-        showToast(`${target.exerciseName} 기록을 수정합니다.`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      const goLogBtn = e.target.closest('#stats-go-log-selected-ex-btn');
-      if (goLogBtn) {
-        const exId = goLogBtn.dataset.logExId;
-        state.selectedDate = Models.formatDateKey(new Date());
-        selectExerciseForDate(exId);
-        switchTab('log');
-        renderAll();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
     });
 
     // 샘플 데이터 채우기 / 초기화 / 백업 / 복원

@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css?v=20261120_1" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261119_1" />
   </head>
   <body>
     <div class="app-shell">
@@ -138,12 +138,6 @@
 
         <!-- ==================== 탭 3: 통계 대시보드 ==================== -->
         <section id="tab-stats" class="tab-panel">
-          <!-- 통계 보기 모드 전환 (전체 요약 vs 종목별 통계) -->
-          <div class="stats-view-tabs">
-            <button type="button" class="stats-view-btn active" data-stats-view="overview">📊 전체 요약</button>
-            <button type="button" class="stats-view-btn" data-stats-view="exercise">🏋️ 종목별 통계</button>
-          </div>
-
           <!-- 기간 선택 필터 -->
           <div class="period-tabs">
             <button type="button" class="period-tab-btn" data-period="week">이번 주</button>
@@ -152,64 +146,42 @@
             <button type="button" class="period-tab-btn" data-period="all">전체</button>
           </div>
 
-          <!-- 보기 1: 전체 요약 -->
-          <div id="stats-view-overview" class="stats-subview">
-            <!-- 핵심 요약 KPI 4종 -->
-            <div id="stats-kpi-grid" class="kpi-grid"></div>
+          <!-- 핵심 요약 KPI 4종 -->
+          <div id="stats-kpi-grid" class="kpi-grid"></div>
 
-            <!-- 내 운동 밸런스 원형 레이더 그래프 (3~8개 항목 사용자 맞춤) -->
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title">
-                  <span class="section-step-pill">BALANCE</span>
-                  <span>내 운동 밸런스</span>
-                </div>
-                <button type="button" id="open-balance-config-btn" class="ex-manage-toggle-btn">
-                  ⚙️ 항목 구성
-                </button>
+          <!-- 내 운동 밸런스 원형 레이더 그래프 (3~8개 항목 사용자 맞춤) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">BALANCE</span>
+                <span>내 운동 밸런스</span>
               </div>
-              <div id="radar-period-goal-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: -6px 0 8px;"></div>
-              <div id="stats-radar-container" class="radar-section"></div>
+              <button type="button" id="open-balance-config-btn" class="ex-manage-toggle-btn">
+                ⚙️ 항목 구성
+              </button>
             </div>
-
-            <!-- 기간별 운동 추이 그래프 -->
-            <div class="card">
-              <div class="card-header">
-                <div id="stats-trend-title" class="card-title">기간별 운동량 추이</div>
-                <span style="font-size: 11px; color: var(--text-muted); font-weight: 700">분 / 세트 볼륨</span>
-              </div>
-              <div id="stats-trend-chart" class="trend-chart"></div>
-            </div>
-
-            <!-- 종목별 누적 통계 요약 (클릭 시 종목별 화면으로 이동) -->
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title">
-                  <span class="section-step-pill">RANK</span>
-                  <span>종목별 누적 순위</span>
-                </div>
-                <button type="button" id="go-to-ex-stats-btn" class="ex-manage-toggle-btn">
-                  자세히 보기 →
-                </button>
-              </div>
-              <div id="stats-exercise-breakdown" class="stat-ex-list"></div>
-            </div>
+            <div id="radar-period-goal-badge" style="font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: -6px 0 8px;"></div>
+            <div id="stats-radar-container" class="radar-section"></div>
           </div>
 
-          <!-- 보기 2: 종목별 통계 화면 -->
-          <div id="stats-view-exercise" class="stats-subview" style="display: none">
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title">
-                  <span class="section-step-pill">EXERCISE</span>
-                  <span>종목 선택</span>
-                </div>
-                <div id="stats-ex-header-action"></div>
-              </div>
-              <div id="stats-ex-picker" class="stats-ex-picker"></div>
+          <!-- 기간별 운동 추이 그래프 -->
+          <div class="card">
+            <div class="card-header">
+              <div id="stats-trend-title" class="card-title">기간별 운동량 추이</div>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700">분 / 세트 볼륨</span>
             </div>
+            <div id="stats-trend-chart" class="trend-chart"></div>
+          </div>
 
-            <div id="stats-ex-detail-content" class="stats-ex-detail-content"></div>
+          <!-- 종목별 누적 통계 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="section-step-pill">RANK</span>
+                <span>종목별 상세 통계</span>
+              </div>
+            </div>
+            <div id="stats-exercise-breakdown" class="stat-ex-list"></div>
           </div>
 
           <!-- 데이터 관리 및 테스트용 샘플 데이터 -->
@@ -329,10 +301,10 @@
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js?v=20261120_1"></script>
-    <script src="./js/models.js?v=20261120_1"></script>
-    <script src="./js/repository.js?v=20261120_1"></script>
-    <script src="./js/stats.js?v=20261120_1"></script>
-    <script src="./js/app.js?v=20261120_1"></script>
+    <script src="./js/icons.js?v=20261119_1"></script>
+    <script src="./js/models.js?v=20261119_1"></script>
+    <script src="./js/repository.js?v=20261119_1"></script>
+    <script src="./js/stats.js?v=20261119_1"></script>
+    <script src="./js/app.js?v=20261119_1"></script>
   </body>
 </html>
