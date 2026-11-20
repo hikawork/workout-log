@@ -110,18 +110,31 @@ window.WorkoutStats = (function () {
           exerciseIcon: log.exerciseIcon || '🔥',
           recordType: log.recordType,
           count: 0,
+          activeDaysSet: new Set(),
+          activeDaysCount: 0,
+          lastDate: '',
           totalSeconds: 0,
           totalMinutes: 0,
           remainSeconds: 0,
+          avgSeconds: 0,
+          maxSeconds: 0,
           totalDistanceKm: 0,
           totalSets: 0,
           totalReps: 0,
+          avgSets: 0,
+          avgReps: 0,
+          maxSets: 0,
+          maxVolumeReps: 0,
           maxWeightKg: 0,
         };
       }
 
       const exStat = byExerciseMap[log.exerciseId];
       exStat.count += 1;
+      exStat.activeDaysSet.add(log.date);
+      if (!exStat.lastDate || log.date > exStat.lastDate) {
+        exStat.lastDate = log.date;
+      }
 
       if (log.recordType === RECORD_TYPES.TIME) {
         const mins = Number(log.minutes) || 0;
@@ -133,6 +146,9 @@ window.WorkoutStats = (function () {
         exStat.totalSeconds += logTotalSec;
         exStat.totalMinutes = Math.floor(exStat.totalSeconds / 60);
         exStat.remainSeconds = exStat.totalSeconds % 60;
+        if (logTotalSec > exStat.maxSeconds) {
+          exStat.maxSeconds = logTotalSec;
+        }
         exStat.totalDistanceKm += dist;
       } else {
         const sets = Number(log.sets) || 0;
@@ -143,6 +159,12 @@ window.WorkoutStats = (function () {
         totalReps += volumeReps;
         exStat.totalSets += sets;
         exStat.totalReps += volumeReps;
+        if (sets > exStat.maxSets) {
+          exStat.maxSets = sets;
+        }
+        if (volumeReps > exStat.maxVolumeReps) {
+          exStat.maxVolumeReps = volumeReps;
+        }
         if (weight > exStat.maxWeightKg) {
           exStat.maxWeightKg = weight;
         }
@@ -153,6 +175,11 @@ window.WorkoutStats = (function () {
     const maxCount = exerciseBreakdown.length > 0 ? exerciseBreakdown[0].count : 1;
 
     exerciseBreakdown.forEach((item) => {
+      item.activeDaysCount = item.activeDaysSet.size;
+      delete item.activeDaysSet;
+      item.avgSeconds = item.count > 0 ? Math.round(item.totalSeconds / item.count) : 0;
+      item.avgSets = item.count > 0 ? Math.round((item.totalSets / item.count) * 10) / 10 : 0;
+      item.avgReps = item.count > 0 ? Math.round(item.totalReps / item.count) : 0;
       item.percentage = Math.round((item.count / Math.max(1, logs.length)) * 100);
       item.barWidth = Math.max(8, Math.round((item.count / maxCount) * 100));
     });
@@ -419,10 +446,60 @@ window.WorkoutStats = (function () {
     };
   }
 
+  /**
+   * 특정 단일 운동 종목의 기간별 상세 통계 및 추이 계산
+   */
+  function computeExerciseDetail(allLogs, periodLogs, exerciseId, period = 'month') {
+    const allExLogs = allLogs.filter((l) => l.exerciseId === exerciseId);
+    const periodExLogs = periodLogs
+      .filter((l) => l.exerciseId === exerciseId)
+      .slice()
+      .sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+
+    const summary = computeSummary(periodExLogs, allExLogs);
+    const exStat = summary.exerciseBreakdown[0] || null;
+    const trend = getPeriodTrend(allExLogs, period);
+
+    let overallLastDate = '';
+    allExLogs.forEach((l) => {
+      if (!overallLastDate || l.date > overallLastDate) {
+        overallLastDate = l.date;
+      }
+    });
+
+    return {
+      exerciseId,
+      count: periodExLogs.length,
+      overallCount: allExLogs.length,
+      activeDaysCount: summary.activeDaysCount,
+      lastDate: exStat ? exStat.lastDate : overallLastDate,
+      overallLastDate,
+      totalSeconds: summary.totalSeconds,
+      totalMinutes: summary.totalMinutes,
+      remainSeconds: summary.remainSeconds,
+      avgSeconds: exStat ? exStat.avgSeconds : 0,
+      maxSeconds: exStat ? exStat.maxSeconds : 0,
+      totalDistanceKm: summary.totalDistanceKm,
+      totalSets: summary.totalSets,
+      totalReps: summary.totalReps,
+      avgSets: exStat ? exStat.avgSets : 0,
+      avgReps: exStat ? exStat.avgReps : 0,
+      maxSets: exStat ? exStat.maxSets : 0,
+      maxVolumeReps: exStat ? exStat.maxVolumeReps : 0,
+      maxWeightKg: exStat ? exStat.maxWeightKg : 0,
+      trend,
+      logs: periodExLogs,
+    };
+  }
+
   return {
     getDateRangeForPeriod,
     calculateStreak,
     computeSummary,
+    computeExerciseDetail,
     getPeriodTrend,
     computeCategoryBalance,
   };
