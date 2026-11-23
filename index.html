@@ -12,7 +12,7 @@
     />
     <link rel="apple-touch-icon" href="./favicon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/styles.css?v=20261124_1" />
+    <link rel="stylesheet" href="./css/styles.css?v=20261124_2" />
   </head>
   <body>
     <div class="app-shell">
@@ -41,15 +41,13 @@
       <!-- 메인 콘텐츠 -->
       <main class="app-content">
         <!-- 로컬 파일 실시간 자동저장 상태 바 -->
-        <div id="file-sync-bar" class="file-sync-bar">
-          <div class="sync-info-group">
-            <span class="sync-dot"></span>
-            <span>💾 내 기기 파일에 자동저장 연결 (캐시 삭제 안심)</span>
-          </div>
-          <div class="sync-btn-group">
-            <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
-            <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
-            <button type="button" class="sync-action-btn" data-sync-act="save-backup-as">💾 다른 이름으로 백업</button>
+        <div id="file-sync-bar" class="file-sync-bar disconnected">
+          <div class="sync-status-header">
+            <span class="sync-status-pill disconnected">
+              <span class="sync-dot"></span>
+              <span>브라우저 임시 저장 중</span>
+            </span>
+            <span class="sync-saved-time">로컬 파일 연결은 백업 관리에서 설정</span>
           </div>
         </div>
 
@@ -185,12 +183,13 @@
           </div>
 
           <!-- 데이터 관리 및 테스트용 샘플 데이터 -->
-          <div class="card">
+          <div class="card" id="data-backup-card">
             <div class="card-header">
-              <div class="card-title">데이터 & 백업 관리</div>
+              <div class="card-title">데이터 &amp; 백업 관리</div>
             </div>
+            <div id="backup-sync-controls" class="backup-sync-box"></div>
             <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px">
-              브라우저 로컬 저장소에 자동 저장됩니다. 샘플 데이터로 통계를 체험하거나 JSON 파일로 백업할 수 있습니다.
+              브라우저 로컬 저장소에 자동 저장됩니다. 샘플 데이터로 통계를 체험하거나 JSON 파일로 백업·복원할 수 있습니다.
             </p>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
               <button type="button" id="seed-sample-btn" class="preset-btn" style="font-weight: 800; color: var(--primary); border-color: var(--border-highlight)">
@@ -316,10 +315,10 @@
     <div id="toast-msg" class="toast"></div>
 
     <!-- 모듈 스크립트 로드 -->
-    <script src="./js/icons.js?v=20261124_1"></script>
-    <script src="./js/models.js?v=20261124_1"></script>
-    <script src="./js/repository.js?v=20261124_1"></script>
-    <script src="./js/stats.js?v=20261124_1"></script>
-    <script src="./js/app.js?v=20261124_1"></script>
+    <script src="./js/icons.js?v=20261124_2"></script>
+    <script src="./js/models.js?v=20261124_2"></script>
+    <script src="./js/repository.js?v=20261124_2"></script>
+    <script src="./js/stats.js?v=20261124_2"></script>
+    <script src="./js/app.js?v=20261124_2"></script>
   </body>
 </html>

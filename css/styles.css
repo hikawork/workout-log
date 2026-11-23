@@ -662,6 +662,24 @@ body {
   border-color: var(--primary);
 }
 
+.backup-sync-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.backup-sync-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
 /* 벤토 카드 */
 .card {
   background: var(--bg-card);

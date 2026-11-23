@@ -393,71 +393,109 @@
   }
 
   /**
-   * 상단 로컬 파일 실시간 자동저장 상태 바 렌더링 (PC + 모바일 통합 지원)
+   * 상단 로컬 파일 실시간 자동저장 상태 바 + 데이터 & 백업 관리 내 파일 연결 UI 렌더링
    */
   function renderFileSyncBar() {
-    const bar = document.getElementById('file-sync-bar');
-    if (!bar) return;
-
     const info = Repo.getFileSyncStatus();
-    bar.classList.remove('connected', 'needs-perm', 'disconnected');
+    const savedText = info.lastSavedAt ? `최근 저장 ${info.lastSavedAt}` : '실시간 자동저장 활성';
 
-    if (info.status === 'connected') {
-      bar.classList.add('connected');
-      const savedText = info.lastSavedAt ? `최근 저장 ${info.lastSavedAt}` : '실시간 자동저장 활성';
-      bar.innerHTML = `
-        <div class="sync-status-header">
-          <span class="sync-status-pill connected">
-            <span class="sync-dot"></span>
-            <span>로컬 파일 사용 중</span>
-          </span>
-          <span class="sync-file-pill" title="현재 연결된 로컬 파일">📄 ${escapeHtml(info.fileName)}</span>
-          <span class="sync-saved-time">${savedText}</span>
-        </div>
-        <div class="sync-btn-group">
-          <button type="button" class="sync-action-btn primary" data-sync-act="save-backup-as" title="현재 기록을 별도 이름의 JSON 파일로 백업 저장">💾 다른 이름으로 백업</button>
-          <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="저장된 파일 불러오기">📂 파일 변경</button>
-          <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 해제">해제</button>
-        </div>
-      `;
-      return;
+    const bar = document.getElementById('file-sync-bar');
+    if (bar) {
+      bar.classList.remove('connected', 'needs-perm', 'disconnected');
+
+      if (info.status === 'connected') {
+        bar.classList.add('connected');
+        bar.innerHTML = `
+          <div class="sync-status-header">
+            <span class="sync-status-pill connected">
+              <span class="sync-dot"></span>
+              <span>로컬 파일 사용 중</span>
+            </span>
+            <span class="sync-file-pill" title="현재 연결된 로컬 파일">📄 ${escapeHtml(info.fileName)}</span>
+            <span class="sync-saved-time">${savedText}</span>
+          </div>
+        `;
+      } else if (info.status === 'needs_permission') {
+        bar.classList.add('needs-perm');
+        bar.innerHTML = `
+          <div class="sync-status-header" style="justify-content: space-between">
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0">
+              <span class="sync-status-pill needs-perm">
+                <span class="sync-dot"></span>
+                <span>로컬 파일 재연결 필요</span>
+              </span>
+              <span class="sync-file-pill">📄 ${escapeHtml(info.fileName)}</span>
+            </div>
+            <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
+          </div>
+        `;
+      } else {
+        bar.classList.add('disconnected');
+        bar.innerHTML = `
+          <div class="sync-status-header" style="justify-content: space-between">
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0">
+              <span class="sync-status-pill disconnected">
+                <span class="sync-dot"></span>
+                <span>브라우저 임시 저장 중</span>
+              </span>
+              <span class="sync-saved-time">로컬 파일 연결은 백업 관리에서 설정</span>
+            </div>
+            <button type="button" class="sync-action-btn" data-sync-act="goto-backup">파일 설정 ›</button>
+          </div>
+        `;
+      }
     }
 
-    if (info.status === 'needs_permission') {
-      bar.classList.add('needs-perm');
-      bar.innerHTML = `
-        <div class="sync-status-header">
-          <span class="sync-status-pill needs-perm">
-            <span class="sync-dot"></span>
-            <span>로컬 파일 재연결 필요</span>
-          </span>
-          <span class="sync-file-pill">📄 ${escapeHtml(info.fileName)}</span>
-        </div>
-        <div class="sync-btn-group">
-          <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
-          <button type="button" class="sync-action-btn" data-sync-act="save-backup-as">💾 다른 이름으로 백업</button>
-          <button type="button" class="sync-action-btn" data-sync-act="connect-new">새 파일</button>
-        </div>
-      `;
-      return;
+    const backupSyncBox = document.getElementById('backup-sync-controls');
+    if (backupSyncBox) {
+      if (info.status === 'connected') {
+        backupSyncBox.innerHTML = `
+          <div class="backup-sync-status">
+            <span class="sync-status-pill connected">
+              <span class="sync-dot"></span>
+              <span>로컬 파일 사용 중</span>
+            </span>
+            <span class="sync-file-pill">📄 ${escapeHtml(info.fileName)}</span>
+            <span class="sync-saved-time">${savedText}</span>
+          </div>
+          <div class="sync-btn-group">
+            <button type="button" class="sync-action-btn" data-sync-act="open-existing" title="다른 저장 파일을 열어 자동저장 연결">📂 파일 변경</button>
+            <button type="button" class="sync-action-btn" data-sync-act="connect-new" title="새 로컬 파일을 만들어 자동저장 연결">+ 새 파일 연결</button>
+            <button type="button" class="sync-action-btn" data-sync-act="disconnect" title="자동저장 연결 해제">자동저장 해제</button>
+          </div>
+        `;
+      } else if (info.status === 'needs_permission') {
+        backupSyncBox.innerHTML = `
+          <div class="backup-sync-status">
+            <span class="sync-status-pill needs-perm">
+              <span class="sync-dot"></span>
+              <span>로컬 파일 재연결 필요</span>
+            </span>
+            <span class="sync-file-pill">📄 ${escapeHtml(info.fileName)}</span>
+          </div>
+          <div class="sync-btn-group">
+            <button type="button" class="sync-action-btn primary" data-sync-act="reconnect">🔗 1클릭 재연결</button>
+            <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 다른 파일 열기</button>
+            <button type="button" class="sync-action-btn" data-sync-act="connect-new">+ 새 파일 연결</button>
+            <button type="button" class="sync-action-btn" data-sync-act="disconnect">해제</button>
+          </div>
+        `;
+      } else {
+        backupSyncBox.innerHTML = `
+          <div class="backup-sync-status">
+            <span class="sync-status-pill disconnected">
+              <span class="sync-dot"></span>
+              <span>로컬 파일 자동저장 미연결</span>
+            </span>
+            <span class="sync-saved-time">PC/기기의 JSON 파일과 연결하면 자동 저장됩니다</span>
+          </div>
+          <div class="sync-btn-group">
+            <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
+            <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
+          </div>
+        `;
+      }
     }
-
-    // 기본: disconnected (브라우저 임시 저장 상태)
-    bar.classList.add('disconnected');
-    bar.innerHTML = `
-      <div class="sync-status-header">
-        <span class="sync-status-pill disconnected">
-          <span class="sync-dot"></span>
-          <span>브라우저 임시 저장 중</span>
-        </span>
-        <span class="sync-saved-time">로컬 파일에 연결하면 캐시 삭제에도 안전해요</span>
-      </div>
-      <div class="sync-btn-group">
-        <button type="button" class="sync-action-btn primary" data-sync-act="connect-new">+ 새 파일 연결</button>
-        <button type="button" class="sync-action-btn" data-sync-act="open-existing">📂 기존 파일 열기</button>
-        <button type="button" class="sync-action-btn" data-sync-act="save-backup-as" title="별도 이름의 JSON 파일로 백업 저장">💾 다른 이름으로 백업</button>
-      </div>
-    `;
   }
 
   /**
@@ -1503,52 +1541,67 @@
   }
 
   /**
+   * 로컬 파일 자동저장 / 백업 액션 공통 처리
+   */
+  async function handleFileSyncAction(act) {
+    try {
+      if (act === 'goto-backup') {
+        switchTab('stats');
+        renderAll();
+        setTimeout(() => {
+          document.getElementById('data-backup-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+        return;
+      }
+      if (act === 'connect-new') {
+        const fileName = await Repo.connectNewSyncFile();
+        showToast(`'${fileName}' 파일에 실시간 자동저장이 연결되었습니다!`);
+        renderAll();
+      } else if (act === 'open-existing') {
+        const res = await Repo.openExistingSyncFile();
+        if (res) {
+          selectExerciseForDate(state.selectedExerciseId);
+          showToast(`'${res.fileName}' 파일(${res.count}건)을 불러오고 자동저장을 연결했습니다!`);
+          renderAll();
+        }
+      } else if (act === 'reconnect') {
+        const ok = await Repo.reconnectRememberedFile();
+        if (ok) {
+          selectExerciseForDate(state.selectedExerciseId);
+          showToast('파일 실시간 자동저장이 다시 활성화되었습니다!');
+          renderAll();
+        }
+      } else if (act === 'disconnect') {
+        await Repo.disconnectSyncFile();
+        showToast('파일 자동저장 연결이 해제되었습니다.');
+        renderFileSyncBar();
+      } else if (act === 'save-backup-as' || act === 'manual-export') {
+        const savedName = await Repo.saveBackupCopyAs();
+        if (savedName) {
+          showToast(`'${savedName}' 이름으로 백업 파일이 저장되었습니다!`);
+        }
+      } else if (act === 'manual-import') {
+        document.getElementById('import-json-input')?.click();
+      }
+    } catch (err) {
+      if (err && err.name !== 'AbortError') {
+        alert(err.message || '파일 연결 중 오류가 발생했습니다.');
+      }
+    }
+  }
+
+  /**
    * 이벤트 바인딩
    */
   function bindStaticEvents() {
-    // 0. 상단 로컬 파일 실시간 자동저장 바 이벤트
-    document.getElementById('file-sync-bar')?.addEventListener('click', async (e) => {
+    // 0. 상단 로컬 파일 상태 바 및 데이터 & 백업 관리 내 파일 연결 이벤트
+    const onSyncContainerClick = (e) => {
       const btn = e.target.closest('[data-sync-act]');
       if (!btn) return;
-      const act = btn.dataset.syncAct;
-
-      try {
-        if (act === 'connect-new') {
-          const fileName = await Repo.connectNewSyncFile();
-          showToast(`'${fileName}' 파일에 실시간 자동저장이 연결되었습니다!`);
-          renderAll();
-        } else if (act === 'open-existing') {
-          const res = await Repo.openExistingSyncFile();
-          if (res) {
-            selectExerciseForDate(state.selectedExerciseId);
-            showToast(`'${res.fileName}' 파일(${res.count}건)을 불러오고 자동저장을 연결했습니다!`);
-            renderAll();
-          }
-        } else if (act === 'reconnect') {
-          const ok = await Repo.reconnectRememberedFile();
-          if (ok) {
-            selectExerciseForDate(state.selectedExerciseId);
-            showToast('파일 실시간 자동저장이 다시 활성화되었습니다!');
-            renderAll();
-          }
-        } else if (act === 'disconnect') {
-          await Repo.disconnectSyncFile();
-          showToast('파일 자동저장 연결이 해제되었습니다.');
-          renderFileSyncBar();
-        } else if (act === 'save-backup-as' || act === 'manual-export') {
-          const savedName = await Repo.saveBackupCopyAs();
-          if (savedName) {
-            showToast(`'${savedName}' 이름으로 백업 파일이 저장되었습니다!`);
-          }
-        } else if (act === 'manual-import') {
-          document.getElementById('import-json-input')?.click();
-        }
-      } catch (err) {
-        if (err && err.name !== 'AbortError') {
-          alert(err.message || '파일 연결 중 오류가 발생했습니다.');
-        }
-      }
-    });
+      handleFileSyncAction(btn.dataset.syncAct);
+    };
+    document.getElementById('file-sync-bar')?.addEventListener('click', onSyncContainerClick);
+    document.getElementById('backup-sync-controls')?.addEventListener('click', onSyncContainerClick);
 
     // 1. 운동 종목 카드 드래그 앤 드롭 순서 변경
     bindSortableContainer('exercise-grid', '.exercise-chip[data-ex-id]', 'data-ex-id', (orderedIds) => {
